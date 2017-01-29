@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
   let programBox = document.getElementById("program")!;
   programBox.addEventListener("keypress", (event) => {
     // When the user types \, insert a lambda instead.
-    console.log(event);
     if (event.key === "\\") {
       // Don't insert the \ character.
       event.preventDefault();
