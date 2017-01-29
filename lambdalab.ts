@@ -19,15 +19,23 @@ function insertText(text: string) {
 }
 
 document.addEventListener("DOMContentLoaded", (event) => {
-  let programBox = document.getElementById("program");
-  programBox!.addEventListener("keypress", (event) => {
+  let programBox = document.getElementById("program")!;
+  programBox.addEventListener("keypress", (event) => {
     // When the user types \, insert a lambda instead.
+    console.log(event);
     if (event.key === "\\") {
       // Don't insert the \ character.
       event.preventDefault();
 
       // Instead, we'll insert a lambda.
       insertText("λ");
+
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+
+      // Parse and execute.
+      let code = programBox.textContent;
+      console.log(code);
     }
   });
 });
