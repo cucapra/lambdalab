@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": true,
+        "outDir": "build",
+        "strictNullChecks": true,
+        "target": "es5",
+        "sourceMap": true,
+        "lib": ["dom", "es5", "es2015.promise", "es2015.iterable"]
+    },
+    "include": [
+        "*.ts"
+    ]
+}

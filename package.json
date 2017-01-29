@@ -1,0 +1,13 @@
+{
+  "name": "lambdalab",
+  "version": "1.0.0",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "typescript": "^2.1.4"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  }
+}
