@@ -43,6 +43,30 @@ class Abs extends Expr {
   };
 }
 
+/**
+ * Parse a sequence of terms separated by whitespace: in other words,
+ * a nested hierarchy of applications.
+ */
+function parse_expr(s: Scanner): Expr | null {
+  let out_term = null;
+  while (true) {
+    let term = parse_term(s);
+    if (term) {
+      s.scan(/\s+/);  // Skip whitespace.
+      if (out_term === null) {
+        // The first term.
+        out_term = term;
+      } else {
+        // Stack this on as an application.
+        out_term = new App(out_term, term);
+      }
+    } else {
+      break;
+    }
+  }
+  return out_term;
+}
+
 function parse_term(s: Scanner): Expr | null {
   let vbl = parse_var(s);
   if (vbl) {
@@ -51,10 +75,6 @@ function parse_term(s: Scanner): Expr | null {
   let abs = parse_abs(s);
   if (abs) {
     return abs;
-  }
-  let app = parse_app(s);
-  if (app) {
-    return app;
   }
   return null;
 }
@@ -101,7 +121,7 @@ function parse_abs(s: Scanner): Expr | null {
 
 function parse(s: string) {
   let scanner = new Scanner(s);
-  let expr = parse_term(scanner);
+  let expr = parse_expr(scanner);
   if (scanner.offset < s.length) {
     console.error("parsing ended at offset", scanner.offset);
   }
@@ -111,3 +131,5 @@ function parse(s: string) {
 console.log(parse("x"));
 console.log(parse("λx.x"));
 console.log(parse("x y"));
+console.log(parse("x y z"));
+console.log(parse("λx.x y"));
