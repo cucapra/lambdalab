@@ -62,6 +62,7 @@ function parse_ident(s: Scanner): string | null {
  * a nested hierarchy of applications.
  */
 function parse_expr(s: Scanner): Expr | null {
+  skip_whitespace(s);
   let out_term = null;
   while (true) {
     let term = parse_term(s);
@@ -82,17 +83,34 @@ function parse_expr(s: Scanner): Expr | null {
 }
 
 /**
- * Parse a non-application expression: a variable or an abstraction.
+ * Parse a non-application expression: a variable or an abstraction, or a
+ * parenthesized expression.
  */
 function parse_term(s: Scanner): Expr | null {
+  // Try a variable occurrence.
   let vbl = parse_var(s);
   if (vbl) {
     return vbl;
   }
+
+  // Try an abstraction.
   let abs = parse_abs(s);
   if (abs) {
     return abs;
   }
+
+  // Try parentheses.
+  if (s.scan(/\(/)) {
+    let expr = parse_expr(s);
+    if (s.scan(/\)/)) {
+      return expr;
+    } else {
+      // Unbalanced parentheses.
+      return null;
+    }
+  }
+
+  // Nothing found.
   return null;
 }
 
@@ -154,3 +172,4 @@ console.log(parse("x y"));
 console.log(parse("x y z"));
 console.log(parse("λx.x y"));
 console.log(parse("λ x . x y"));
+console.log(parse("x (y z)"));
