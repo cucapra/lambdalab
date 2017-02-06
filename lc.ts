@@ -48,13 +48,13 @@ function parse_term(s: Scanner): Expr | null {
   if (vbl) {
     return vbl;
   }
-  let app = parse_app(s);
-  if (app) {
-    return app;
-  }
   let abs = parse_abs(s);
   if (abs) {
     return abs;
+  }
+  let app = parse_app(s);
+  if (app) {
+    return app;
   }
   return null;
 }
@@ -100,8 +100,14 @@ function parse_abs(s: Scanner): Expr | null {
 }
 
 function parse(s: string) {
-  return parse_term(new Scanner(s));
+  let scanner = new Scanner(s);
+  let expr = parse_term(scanner);
+  if (scanner.offset < s.length) {
+    console.error("parsing ended at offset", scanner.offset);
+  }
+  return expr;
 }
 
 console.log(parse("x"));
 console.log(parse("λx.x"));
+console.log(parse("x y"));
