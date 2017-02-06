@@ -112,7 +112,7 @@ function parse_abs(s: Scanner): Expr | null {
   if (!s.scan(/\./)) {
     return null;
   }
-  let body = parse_term(s);
+  let body = parse_expr(s);
   if (!body) {
     return null;
   }
