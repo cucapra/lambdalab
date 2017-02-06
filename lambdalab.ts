@@ -1,4 +1,4 @@
-import * as lc from './lib/ast';
+import * as ast from './lib/ast';
 
 // Insert text into the DOM at the current caret.
 function insertText(text: string) {
@@ -20,6 +20,13 @@ function insertText(text: string) {
   }
 }
 
+function runCode(code: string) {
+  let expr = ast.parse(code);
+  if (expr) {
+    console.log(ast.pretty(expr));
+  }
+}
+
 document.addEventListener("DOMContentLoaded", (event) => {
   let programBox = document.getElementById("program")!;
   programBox.addEventListener("keypress", (event) => {
@@ -35,8 +42,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
       event.preventDefault();
 
       // Parse and execute.
-      let code = programBox.textContent;
-      console.log(code);
+      let code = programBox.textContent!;
+      runCode(code);
     }
   });
 });

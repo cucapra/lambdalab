@@ -157,7 +157,7 @@ function parse_abs(s: Scanner): Expr | null {
   return new Abs(name, body);
 }
 
-function parse(s: string) {
+export function parse(s: string) {
   let scanner = new Scanner(s);
   let expr = parse_expr(scanner);
   if (scanner.offset < s.length) {
@@ -169,7 +169,7 @@ function parse(s: string) {
 /**
  * Pretty-print a lambda-calculus expression.
  */
-function pretty(e: Expr): string {
+export function pretty(e: Expr): string {
   if (e instanceof Var) {
     return e.name;
   } else if (e instanceof Abs) {
