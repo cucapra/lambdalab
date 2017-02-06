@@ -173,3 +173,4 @@ console.log(parse("x y z"));
 console.log(parse("λx.x y"));
 console.log(parse("λ x . x y"));
 console.log(parse("x (y z)"));
+console.log(parse(" x ( y z ) "));
