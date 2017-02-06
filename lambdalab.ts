@@ -43,6 +43,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
   let programBox = document.getElementById("program")!;
   let resultList = document.getElementById("result")!;
 
+  // Focus in the code box.
+  programBox.focus();
+
   programBox.addEventListener("keypress", (event) => {
     // When the user types \, insert a lambda instead.
     if (event.key === "\\") {
