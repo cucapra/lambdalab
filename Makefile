@@ -1,8 +1,7 @@
-.PHONY: all
-all: build/lambdalab.js build/index.html
+.PHONY: web
+web:
+	npm run build-web
 
-build/lambdalab.js: lambdalab.ts
-	npm run build
-
-build/index.html: index.html
-	cp $< $@
+.PHONY: clean
+clean:
+	rm -rf lambdalab.bundle.js build
