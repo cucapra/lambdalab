@@ -1,4 +1,4 @@
-import * as lc from './lib/lc';
+import * as lc from './lib/ast';
 
 // Insert text into the DOM at the current caret.
 function insertText(text: string) {
