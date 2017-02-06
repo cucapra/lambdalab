@@ -166,11 +166,22 @@ function parse(s: string) {
   return expr;
 }
 
-console.log(parse("x"));
-console.log(parse("λx.x"));
-console.log(parse("x y"));
-console.log(parse("x y z"));
-console.log(parse("λx.x y"));
-console.log(parse("λ x . x y"));
-console.log(parse("x (y z)"));
-console.log(parse(" x ( y z ) "));
+function pretty(e: Expr): string {
+  if (e instanceof Var) {
+    return e.name;
+  } else if (e instanceof Abs) {
+    return "λ" + e.vbl + "." + pretty(e.body);
+  } else if (e instanceof App) {
+    return pretty(e.e1) + " " + pretty(e.e2);
+  }
+  throw "unknown syntax form";
+}
+
+console.log(pretty(parse("x")!));
+console.log(pretty(parse("λx.x")!));
+console.log(pretty(parse("x y")!));
+console.log(pretty(parse("x y z")!));
+console.log(pretty(parse("λx.x y")!));
+console.log(pretty(parse("λ x . x y")!));
+console.log(pretty(parse("x (y z)")!));
+console.log(pretty(parse(" x ( y z ) ")!));
