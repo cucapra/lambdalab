@@ -11,5 +11,8 @@
     "build": "tsc",
     "build-web": "tsc && webpack",
     "build-cli": "tsc -p tsconfig.cli.json"
+  },
+  "bin": {
+    "lc": "build/lc.js"
   }
 }
