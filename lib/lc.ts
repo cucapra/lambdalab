@@ -26,7 +26,7 @@ class Scanner {
 /**
  * AST for the lambda-calculus.
  */
-class Expr {}
+export class Expr {}
 class Var extends Expr {
   constructor(public name: string) {
     super();

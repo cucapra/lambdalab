@@ -1,3 +1,5 @@
+import * as lc from './lib/lc';
+
 // Insert text into the DOM at the current caret.
 function insertText(text: string) {
   let sel = window.getSelection();
