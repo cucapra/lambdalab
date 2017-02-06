@@ -44,6 +44,20 @@ class Abs extends Expr {
 }
 
 /**
+ * Scan over any amount of whitespace.
+ */
+function skip_whitespace(s: Scanner): void {
+  s.scan(/\s*/);
+}
+
+/**
+ * Parse a variable name.
+ */
+function parse_ident(s: Scanner): string | null {
+  return s.scan(/[A-Za-z0-9]+/);
+}
+
+/**
  * Parse a sequence of terms separated by whitespace: in other words,
  * a nested hierarchy of applications.
  */
@@ -52,7 +66,7 @@ function parse_expr(s: Scanner): Expr | null {
   while (true) {
     let term = parse_term(s);
     if (term) {
-      s.scan(/\s+/);  // Skip whitespace.
+      skip_whitespace(s);
       if (out_term === null) {
         // The first term.
         out_term = term;
@@ -67,6 +81,9 @@ function parse_expr(s: Scanner): Expr | null {
   return out_term;
 }
 
+/**
+ * Parse a non-application expression: a variable or an abstraction.
+ */
 function parse_term(s: Scanner): Expr | null {
   let vbl = parse_var(s);
   if (vbl) {
@@ -79,8 +96,11 @@ function parse_term(s: Scanner): Expr | null {
   return null;
 }
 
+/**
+ * Parse a variable occurrence.
+ */
 function parse_var(s: Scanner): Expr | null {
-  let name = s.scan(/[A-Za-z0-9]+/);
+  let name = parse_ident(s);
   if (name) {
     return new Var(name);
   } else {
@@ -88,30 +108,30 @@ function parse_var(s: Scanner): Expr | null {
   }
 }
 
-function parse_app(s: Scanner): Expr | null {
-  let e1 = parse_term(s);
-  if (!e1) {
-    return null;
-  }
-  s.scan(/\s+/);  // Skip whitespace.
-  let e2 = parse_term(s);
-  if (!e2) {
-    return null;
-  }
-  return new App(e1, e2);
-}
-
+/**
+ * Parse a lambda-abstraction.
+ */
 function parse_abs(s: Scanner): Expr | null {
+  // Lambda.
   if (!s.scan(/\\|λ/)) {
     return null;
   }
-  let name = s.scan(/[A-Za-z0-9]+/);
+  skip_whitespace(s);
+
+  // Variable.
+  let name = parse_ident(s);
   if (!name) {
     return null;
   }
+  skip_whitespace(s);
+
+  // Dot.
   if (!s.scan(/\./)) {
     return null;
   }
+  skip_whitespace(s);
+
+  // Body.
   let body = parse_expr(s);
   if (!body) {
     return null;
@@ -133,3 +153,4 @@ console.log(parse("λx.x"));
 console.log(parse("x y"));
 console.log(parse("x y z"));
 console.log(parse("λx.x y"));
+console.log(parse("λ x . x y"));
