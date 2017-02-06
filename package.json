@@ -9,6 +9,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "build-web": "tsc && webpack"
+    "build-web": "tsc && webpack",
+    "build-cli": "tsc -p tsconfig.cli.json"
   }
 }

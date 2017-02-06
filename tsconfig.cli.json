@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": true,
+        "outDir": "build",
+        "strictNullChecks": true
+    },
+    "include": [
+        "lc.ts"
+    ]
+}
