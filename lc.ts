@@ -182,9 +182,9 @@ function pretty(e: Expr): string {
       lhs = "(" + lhs + ")";
     }
 
-    // Parenthesize applications on the right.
+    // Parenthesize applications and abstractions on the right.
     let rhs = pretty(e.e2);
-    if (e.e2 instanceof App) {
+    if (e.e2 instanceof App || e.e2 instanceof Abs) {
       rhs = "(" + rhs + ")";
     }
 
