@@ -11,6 +11,10 @@ class Scanner {
   scan(re: RegExp): string | null {
     let match = this.str.substring(this.offset).match(re);
     if (!match) {
+      // No match at all.
+      return null;
+    } else if (match.index !== 0) {
+      // Not at the beginning of the string.
       return null;
     } else {
       this.offset += match[0].length;
