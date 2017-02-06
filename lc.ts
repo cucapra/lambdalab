@@ -166,13 +166,29 @@ function parse(s: string) {
   return expr;
 }
 
+/**
+ * Pretty-print a lambda-calculus expression.
+ */
 function pretty(e: Expr): string {
   if (e instanceof Var) {
     return e.name;
   } else if (e instanceof Abs) {
-    return "λ" + e.vbl + "." + pretty(e.body);
+    return "λ" + e.vbl + ". " + pretty(e.body);
   } else if (e instanceof App) {
-    return pretty(e.e1) + " " + pretty(e.e2);
+
+    // Parenthesize abstractions on the left.
+    let lhs = pretty(e.e1);
+    if (e.e1 instanceof Abs) {
+      lhs = "(" + lhs + ")";
+    }
+
+    // Parenthesize applications on the right.
+    let rhs = pretty(e.e2);
+    if (e.e2 instanceof App) {
+      rhs = "(" + rhs + ")";
+    }
+
+    return lhs + " " + rhs;
   }
   throw "unknown syntax form";
 }
@@ -185,3 +201,5 @@ console.log(pretty(parse("λx.x y")!));
 console.log(pretty(parse("λ x . x y")!));
 console.log(pretty(parse("x (y z)")!));
 console.log(pretty(parse(" x ( y z ) ")!));
+console.log(pretty(parse("(\\x. x)(\\y. y)")!));
+console.log(pretty(parse("λt. (λf. t (λz. f f z)) (λf. t (λz. f f z))")!));
