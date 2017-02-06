@@ -20,15 +20,29 @@ function insertText(text: string) {
   }
 }
 
-function runCode(code: string) {
+function runCode(code: string, resultList: HTMLElement) {
   let expr = ast.parse(code);
   if (expr) {
-    console.log(ast.pretty(expr));
+    showResult(ast.pretty(expr), resultList);
   }
+}
+
+function showResult(res: string, resultList: HTMLElement) {
+  // Clear the old contents.
+  let range = document.createRange();
+  range.selectNodeContents(resultList);
+  range.deleteContents();
+
+  // Add a new entry.
+  let entry = document.createElement("li");
+  entry.textContent = res;
+  resultList.appendChild(entry);
 }
 
 document.addEventListener("DOMContentLoaded", (event) => {
   let programBox = document.getElementById("program")!;
+  let resultList = document.getElementById("result")!;
+
   programBox.addEventListener("keypress", (event) => {
     // When the user types \, insert a lambda instead.
     if (event.key === "\\") {
@@ -43,7 +57,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
       // Parse and execute.
       let code = programBox.textContent!;
-      runCode(code);
+      runCode(code, resultList);
     }
   });
 });
