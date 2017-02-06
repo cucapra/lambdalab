@@ -95,6 +95,9 @@ function parse_abs(s: Scanner): Expr | null {
   return new Abs(name, body);
 }
 
-function parse(s: String) {
+function parse(s: string) {
   return parse_term(new Scanner(s));
 }
+
+console.log(parse("x"));
+console.log(parse("λx.x"));
