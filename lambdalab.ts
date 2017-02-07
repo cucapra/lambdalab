@@ -65,7 +65,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
       // Hide the help text on first execution.
       for (let i = 0; i < helpText.length; ++i) {
-        console.log("hi?");
         hide(helpText[i] as HTMLElement);
       }
 
