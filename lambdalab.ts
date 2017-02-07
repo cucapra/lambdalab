@@ -27,6 +27,10 @@ function runCode(code: string, resultList: HTMLElement) {
   }
 }
 
+function hide(el: HTMLElement) {
+  el.style.display = 'none';
+}
+
 function showResult(res: string, resultList: HTMLElement) {
   // Clear the old contents.
   let range = document.createRange();
@@ -42,6 +46,7 @@ function showResult(res: string, resultList: HTMLElement) {
 document.addEventListener("DOMContentLoaded", (event) => {
   let programBox = document.getElementById("program")!;
   let resultList = document.getElementById("result")!;
+  let helpText = document.getElementsByClassName("help");
 
   // Focus in the code box.
   programBox.focus();
@@ -57,6 +62,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     } else if (event.key === "Enter") {
       event.preventDefault();
+
+      // Hide the help text on first execution.
+      for (let i = 0; i < helpText.length; ++i) {
+        console.log("hi?");
+        hide(helpText[i] as HTMLElement);
+      }
 
       // Parse and execute.
       let code = programBox.textContent!;
