@@ -13,7 +13,7 @@
     "build": "tsc",
     "build-web": "tsc -p tsconfig.web.json && webpack",
     "build-cli": "tsc -p tsconfig.cli.json",
-    "test": "tsc -p test"
+    "test": "tsc -p test && node build/test_parse.js"
   },
   "bin": {
     "lc": "build/lc.js"
