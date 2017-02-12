@@ -23,6 +23,10 @@ To build the command-line version, type `npm run build-cli` or `yarn run build-c
 
 The main entry point for the CLI tool is `lc.ts`.
 
+### Running the Tests
+
+Use `yarn test` or `npm test` to build the source for the tests and run them.
+
 [webpack]: https://webpack.github.io
 [TypeScript]: https://www.typescriptlang.org
 [yarn]: https://yarnpkg.com/en/
