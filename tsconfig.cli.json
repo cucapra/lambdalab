@@ -1,9 +1,5 @@
 {
-    "compilerOptions": {
-        "noImplicitAny": true,
-        "outDir": "build",
-        "strictNullChecks": true
-    },
+    "extends": "./tsconfig.json",
     "include": [
         "lc.ts"
     ]
