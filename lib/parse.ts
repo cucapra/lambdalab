@@ -1,3 +1,9 @@
+/**
+ * A very simple recursive-descent parser for the plain lambda-calculus.
+ *
+ * This version currently just returns `null` when any error is encountered.
+ * Eventually, it should produce useful error information.
+ */
 import { Expr, Abs, App, Var } from './ast';
 
 /**
@@ -139,7 +145,10 @@ function parse_abs(s: Scanner): Expr | null {
   return new Abs(name, body);
 }
 
-export function parse(s: string) {
+/**
+ * Parse a lambda-calculus expression from a string.
+ */
+export function parse(s: string): Expr | null {
   let scanner = new Scanner(s);
   let expr = parse_expr(scanner);
   if (scanner.offset < s.length) {

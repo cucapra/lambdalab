@@ -3,18 +3,27 @@
  */
 export class Expr {}
 
+/**
+ * The variable syntax form.
+ */
 export class Var extends Expr {
   constructor(public name: string) {
     super();
   };
 }
 
+/**
+ * The application syntax form.
+ */
 export class App extends Expr {
   constructor(public e1: Expr, public e2: Expr) {
     super();
   };
 }
 
+/**
+ * The abstraction syntax form.
+ */
 export class Abs extends Expr {
   constructor(public vbl: string, public body: Expr) {
     super();
@@ -22,7 +31,7 @@ export class Abs extends Expr {
 }
 
 /**
- * Pretty-print a lambda-calculus expression.
+ * Pretty-print a lambda-calculus expression as a string.
  */
 export function pretty(e: Expr): string {
   if (e instanceof Var) {

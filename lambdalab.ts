@@ -4,7 +4,9 @@
 import { parse } from './lib/parse';
 import { pretty } from './lib/ast';
 
-// Insert text into the DOM at the current caret.
+/**
+ * Insert text into the DOM at the current selection caret.
+ */
 function insertText(text: string) {
   let sel = window.getSelection();
   if (sel.getRangeAt && sel.rangeCount) {
@@ -24,6 +26,9 @@ function insertText(text: string) {
   }
 }
 
+/**
+ * Execute a lambda-calculus expression in a string and display the results.
+ */
 function runCode(code: string, resultList: HTMLElement) {
   let expr = parse(code);
   if (expr) {
@@ -31,10 +36,21 @@ function runCode(code: string, resultList: HTMLElement) {
   }
 }
 
+/**
+ * Hide an HTML element from the page by setting "display: none" in its CSS.
+ */
 function hide(el: HTMLElement) {
   el.style.display = 'none';
 }
 
+/**
+ * Show the result, given as a string, of executing some code in the list
+ * element provided.
+ *
+ * Currently, this empties out the list and adds a single element with the
+ * result string. Eventually, this should be able to add many <li>s to show
+ * the process of beta-reduction.
+ */
 function showResult(res: string, resultList: HTMLElement) {
   // Clear the old contents.
   let range = document.createRange();
@@ -47,11 +63,11 @@ function showResult(res: string, resultList: HTMLElement) {
   resultList.appendChild(entry);
 }
 
-document.addEventListener("DOMContentLoaded", (event) => {
-  let programBox = document.getElementById("program")!;
-  let resultList = document.getElementById("result")!;
-  let helpText = document.getElementsByClassName("help");
-
+/**
+ * Set up the event handlers. This is called when the DOM is first loaded.
+ */
+function setUp(programBox: HTMLElement, resultList: HTMLElement,
+               helpText: HTMLCollectionOf<Element>) {
   // Focus in the code box.
   programBox.focus();
 
@@ -77,4 +93,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
       runCode(code, resultList);
     }
   });
+}
+
+// Event handler for document setup.
+document.addEventListener("DOMContentLoaded", () => {
+  let programBox = document.getElementById("program")!;
+  let resultList = document.getElementById("result")!;
+  let helpText = document.getElementsByClassName("help");
+  setUp(programBox, resultList, helpText);
 });
