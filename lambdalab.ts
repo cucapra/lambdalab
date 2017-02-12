@@ -1,4 +1,8 @@
-import * as ast from './lib/ast';
+/**
+ * The Web interface.
+ */
+import { parse } from './lib/parse';
+import { pretty } from './lib/ast';
 
 // Insert text into the DOM at the current caret.
 function insertText(text: string) {
@@ -21,9 +25,9 @@ function insertText(text: string) {
 }
 
 function runCode(code: string, resultList: HTMLElement) {
-  let expr = ast.parse(code);
+  let expr = parse(code);
   if (expr) {
-    showResult(ast.pretty(expr), resultList);
+    showResult(pretty(expr), resultList);
   }
 }
 
