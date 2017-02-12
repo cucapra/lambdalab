@@ -1,10 +1,10 @@
 .PHONY: web
 web:
-	npm run build-web
+	yarn run build-web
 
 .PHONY: cli
 cli:
-	npm run build-cli
+	yarn run build-cli
 
 .PHONY: clean
 clean:
