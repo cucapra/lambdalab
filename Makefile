@@ -1,6 +1,13 @@
 .PHONY: web
-web:
+web: lambdalab.bundle.js
+
+lambdalab.bundle.js: lambdalab.ts $(wildcard lib/*.ts)
 	yarn run build-web
+
+.PHONY: dist
+dist: lambdalab.bundle.js index.html
+	mkdir -p $@
+	cp $^ $@
 
 .PHONY: cli
 cli:
@@ -12,4 +19,11 @@ test:
 
 .PHONY: clean
 clean:
-	rm -rf lambdalab.bundle.js build
+	rm -rf lambdalab.bundle.js build dist
+
+.PHONY: deploy
+RSYNCARGS := --compress --recursive --checksum --itemize-changes \
+	--delete -e ssh --perms --chmod=Du=rwx,Dgo=rx,Fu=rw,Fog=r
+DEST := courses:coursewww/capra.cs.cornell.edu/htdocs/public/lambdalab
+deploy: dist
+	rsync $(RSYNCARGS) dist/ $(DEST)
