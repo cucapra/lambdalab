@@ -7,7 +7,7 @@
 Setting Up
 ----------
 
-λab is written in [TypeScript][] and has a command-line interface and a Web-based visual interface. To get started with both, you'll need [Node][]. First, clone the repository. Then you'll need to compile the source to JavaScript.
+λab is written in [TypeScript][] and has a command-line interface and a [Web-based visual interface][web]. To get started with both, you'll need [Node][]. First, clone the repository. Then you'll need to compile the source to JavaScript.
 
 You can get the TypeScript compiler and other dependencies from `npm` by typing `npm install` or just [`yarn`][yarn] if you have that.
 
@@ -31,3 +31,4 @@ Use `yarn test` or `npm test` to build the source for the tests and run them.
 [TypeScript]: https://www.typescriptlang.org
 [yarn]: https://yarnpkg.com/en/
 [node]: https://nodejs.org/en/
+[web]: https://capra.cs.cornell.edu/lambdalab/
