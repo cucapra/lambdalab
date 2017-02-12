@@ -147,17 +147,3 @@ export function parse(s: string) {
   }
   return expr;
 }
-
-// TODO move these to real tests
-/*
-console.log(pretty(parse("x")!));
-console.log(pretty(parse("λx.x")!));
-console.log(pretty(parse("x y")!));
-console.log(pretty(parse("x y z")!));
-console.log(pretty(parse("λx.x y")!));
-console.log(pretty(parse("λ x . x y")!));
-console.log(pretty(parse("x (y z)")!));
-console.log(pretty(parse(" x ( y z ) ")!));
-console.log(pretty(parse("(\\x. x)(\\y. y)")!));
-console.log(pretty(parse("λt. (λf. t (λz. f f z)) (λf. t (λz. f f z))")!));
-*/

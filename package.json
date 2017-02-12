@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "dependencies": {},
   "devDependencies": {
+    "@types/tape": "^4.2.29",
+    "tape": "^4.6.3",
     "typescript": "^2.1.4",
     "webpack": "^2.2.1"
   },
@@ -10,7 +12,8 @@
   "scripts": {
     "build": "tsc",
     "build-web": "tsc -p tsconfig.web.json && webpack",
-    "build-cli": "tsc -p tsconfig.cli.json"
+    "build-cli": "tsc -p tsconfig.cli.json",
+    "test": "tsc -p test"
   },
   "bin": {
     "lc": "build/lc.js"
