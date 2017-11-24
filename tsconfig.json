@@ -1,10 +1,6 @@
 {
     "compilerOptions": {
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "noImplicitThis": true,
-        "noImplicitReturns": true,
-
+        "strict": true,
         "outDir": "build"
     }
 }
