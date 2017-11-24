@@ -33,13 +33,17 @@ class Scanner {
   done() {
     return this.offset === this.str.length;
   }
+
+  error(msg: string) {
+    return new ParseError(msg, this.offset);
+  }
 }
 
 /**
  * Parser errors.
  */
 export class ParseError {
-  constructor(public msg: string) {}
+  constructor(public msg: string, public pos: number) {}
 }
 
 /**
@@ -69,7 +73,7 @@ function parse_expr(s: Scanner): Expr {
     // Could not parse a term here.
     if (!term) {
       if (out_term === null) {
-        throw new ParseError("no term found");
+        throw s.error("no term found");
       }
       return out_term;
     }
@@ -109,7 +113,7 @@ function parse_term(s: Scanner): Expr | null {
     if (s.scan(/\)/)) {
       return expr;
     } else {
-      throw new ParseError("unbalanced parentheses");
+      throw s.error("unbalanced parentheses");
     }
   }
 
@@ -142,13 +146,13 @@ function parse_abs(s: Scanner): Expr | null {
   // Variable.
   let name = parse_ident(s);
   if (!name) {
-    throw new ParseError("expected variable name after lambda");
+    throw s.error("expected variable name after lambda");
   }
   skip_whitespace(s);
 
   // Dot.
   if (!s.scan(/\./)) {
-    throw new ParseError("expected dot after variable name");
+    throw s.error("expected dot after variable name");
   }
   skip_whitespace(s);
 
@@ -164,7 +168,7 @@ export function parse(s: string): Expr {
   let scanner = new Scanner(s);
   let expr = parse_expr(scanner);
   if (scanner.offset < s.length) {
-    throw new ParseError("parsing ended at offset " + scanner.offset);
+    throw scanner.error("parsing ended prematurely");
   }
   return expr;
 }
