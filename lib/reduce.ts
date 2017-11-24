@@ -7,29 +7,27 @@ import { Expr, Abs, App, Var } from './ast';
  * Check whether a lambda-term is a value.
  */
 function is_value(e: Expr): boolean {
-  return e instanceof Abs;
+  return e.kind === "abs";
 }
 
 /**
  * Perform capture-avoiding substitution.
  */
 function subst(e: Expr, v: Expr, x: string): Expr {
-  if (e instanceof Var) {
+  switch (e.kind) {
+  case "var":
     if (e.name === x) {
       return v;
     } else {
       return e;
     }
-
-  } else if (e instanceof App) {
+  
+  case "app":
     return new App(subst(e.e1, v, x), subst(e.e2, v, x));
-
-  } else if (e instanceof Abs) {
+  
+  case "abs":
     return "tk";
-
   }
-
-  throw "unreachable";
 }
 
 /**
@@ -38,14 +36,14 @@ function subst(e: Expr, v: Expr, x: string): Expr {
  */
 export function reduce(e: Expr): Expr | null {
   // Only applications can step.
-  if (!(e instanceof App)) {
+  if (!(e.kind === "app")) {
     return null;
   }
 
-  if (e.e1 instanceof Abs && is_value(e.e2)) {
+  if (e.e1.kind === "abs"  && is_value(e.e2)) {
     // Value applied to value: substitute.
     return subst(e.e1, e.e2, e.e1.vbl);
-  } else if (!(e.e1 instanceof Abs)) {
+  } else if (!(e.e1.kind === "abs")) {
     // LHS is not yet a value; step it if possible.
     let lhs = reduce(e.e1);
     if (lhs === null) {

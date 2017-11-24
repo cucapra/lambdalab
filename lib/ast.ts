@@ -1,34 +1,35 @@
 /**
  * AST for the lambda-calculus.
  */
-export class Expr {}
 
 /**
  * The variable syntax form.
  */
-export class Var extends Expr {
-  constructor(public name: string) {
-    super();
-  };
+export class Var {
+  kind: "var";
+  constructor(public name: string) {};
 }
 
 /**
  * The application syntax form.
  */
-export class App extends Expr {
-  constructor(public e1: Expr, public e2: Expr) {
-    super();
-  };
+export class App {
+  kind: "app";
+  constructor(public e1: Expr, public e2: Expr) {};
 }
 
 /**
  * The abstraction syntax form.
  */
-export class Abs extends Expr {
-  constructor(public vbl: string, public body: Expr) {
-    super();
-  };
+export class Abs {
+  kind: "abs";
+  constructor(public vbl: string, public body: Expr) {};
 }
+
+/**
+ * Any lambda-term.
+ */
+export type Expr = Var | App | Abs;
 
 /**
  * Pretty-print a lambda-calculus expression as a string.
