@@ -18,6 +18,14 @@ console.log(pretty(parse(" x ( y z ) ")!));
 console.log(pretty(parse("(\\x. x)(\\y. y)")!));
 console.log(pretty(parse("λt. (λf. t (λz. f f z)) (λf. t (λz. f f z))")!));
 
-let e = parse("(\\x. x)(\\y. y)")!;
-console.log(pretty(e));
-console.log(pretty(reduce(e)!));
+let e1 = parse("(\\x. x)(\\y. y)")!;
+console.log(pretty(e1));
+console.log(pretty(reduce(e1)!));
+
+let e2 = parse("(\\x. y)(\\y. y)")!;
+console.log(pretty(e2));
+console.log(pretty(reduce(e2)!));
+
+let e3 = parse("(\\x. x x)(\\y. y y)")!;
+console.log(pretty(e3));
+console.log(pretty(reduce(e3)!));

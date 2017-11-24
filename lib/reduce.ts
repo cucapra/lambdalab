@@ -82,7 +82,8 @@ export function reduce(e: Expr): Expr | null {
 
   if (e.e1.kind === "abs"  && is_value(e.e2)) {
     // Value applied to value: substitute.
-    return subst(e.e1, e.e2, e.e1.vbl);
+    return subst(e.e1.body, e.e2, e.e1.vbl);
+
   } else if (!(e.e1.kind === "abs")) {
     // LHS is not yet a value; step it if possible.
     let lhs = reduce(e.e1);
@@ -90,6 +91,7 @@ export function reduce(e: Expr): Expr | null {
       return null;
     }
     return new App(lhs, e.e2);
+
   } else {
     // LHS is a value, but the RHS is not. Step the RHS.
     let rhs = reduce(e.e2);
