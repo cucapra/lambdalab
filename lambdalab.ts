@@ -34,16 +34,15 @@ function insertText(text: string) {
 
 /**
  * Execute a lambda-calculus expression in a string. Return a new set of steps
- * to display, or nothing if the expression did not parse.
+ * to display or a parse error.
  */
-function runCode(code: string): string[] | null {
+function runCode(code: string): string[] | ParseError {
   let expr;
   try {
     expr = parse(code);
   } catch (e) {
     if (e instanceof ParseError) {
-      console.log(`parse error for "${code}" @ ${e.pos}: ${e.msg}`);
-      return null;
+      return e;
     } else {
       throw(e);
     }
@@ -101,6 +100,14 @@ function showResult(res: ReadonlyArray<string>, resultList: HTMLElement,
 }
 
 /**
+ * Display a parser error.
+ */
+function showError(programBox: HTMLElement, error: ParseError) {
+  console.log(`parse error for "${programBox.textContent!}" @ ` +
+              `${error.pos}: ${error.msg}`);
+}
+
+/**
  * Set up the event handlers. This is called when the DOM is first loaded.
  */
 function setUp(programBox: HTMLElement, resultList: HTMLElement,
@@ -110,7 +117,9 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
     // Parse and execute.
     let code = programBox.textContent!;
     let result = runCode(code);
-    if (result) {
+    if (result instanceof ParseError) {
+      showError(programBox, result);
+    } else {
       showResult(result, resultList, helpText);
     }
   }
