@@ -3,6 +3,12 @@
  */
 import { parse } from './lib/parse';
 import { pretty } from './lib/ast';
+import { reduce } from './lib/reduce';
+
+/**
+ * How many reduction steps to execute before timing out?
+ */
+const TIMEOUT = 32;
 
 /**
  * Insert text into the DOM at the current selection caret.
@@ -32,7 +38,19 @@ function insertText(text: string) {
 function runCode(code: string, resultList: HTMLElement) {
   let expr = parse(code);
   if (expr) {
-    showResult(pretty(expr), resultList);
+    let steps: string[] = [];
+
+    for (let i = 0; i < TIMEOUT; ++i) {
+      steps.push(pretty(expr));
+
+      // Take a step, if possible.
+      expr = reduce(expr);
+      if (expr === null) {
+        break;
+      }
+    }
+
+    showResult(steps, resultList);
   }
 }
 
@@ -51,16 +69,18 @@ function hide(el: HTMLElement) {
  * result string. Eventually, this should be able to add many <li>s to show
  * the process of beta-reduction.
  */
-function showResult(res: string, resultList: HTMLElement) {
+function showResult(res: ReadonlyArray<string>, resultList: HTMLElement) {
   // Clear the old contents.
   let range = document.createRange();
   range.selectNodeContents(resultList);
   range.deleteContents();
 
-  // Add a new entry.
-  let entry = document.createElement("li");
-  entry.textContent = res;
-  resultList.appendChild(entry);
+  // Add new entries.
+  for (let line of res) {
+    let entry = document.createElement("li");
+    entry.textContent = line;
+    resultList.appendChild(entry);
+  }
 }
 
 /**
