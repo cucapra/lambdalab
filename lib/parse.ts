@@ -142,13 +142,13 @@ function parse_abs(s: Scanner): Expr | null {
   // Variable.
   let name = parse_ident(s);
   if (!name) {
-    return null;
+    throw new ParseError("expected variable name after lambda");
   }
   skip_whitespace(s);
 
   // Dot.
   if (!s.scan(/\./)) {
-    return null;
+    throw new ParseError("expected dot after variable name");
   }
   skip_whitespace(s);
 
