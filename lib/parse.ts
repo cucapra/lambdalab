@@ -29,6 +29,17 @@ class Scanner {
       return match[0];
     }
   }
+
+  done() {
+    return this.offset === this.str.length;
+  }
+}
+
+/**
+ * Parser errors.
+ */
+export class ParseError {
+  constructor(public msg: string) {}
 }
 
 /**
@@ -49,32 +60,34 @@ function parse_ident(s: Scanner): string | null {
  * Parse a sequence of terms separated by whitespace: in other words,
  * a nested hierarchy of applications.
  */
-function parse_expr(s: Scanner): Expr | null {
+function parse_expr(s: Scanner): Expr {
   skip_whitespace(s);
   let out_term = null;
   while (true) {
     let term = parse_term(s);
-    if (term) {
-      skip_whitespace(s);
-      if (out_term === null) {
-        // The first term.
-        out_term = term;
-      } else {
-        // Stack this on as an application.
-        out_term = new App(out_term, term);
-      }
+
+    // Accumulate the newly-parsed term.
+    skip_whitespace(s);
+    if (out_term === null) {
+      // The first term.
+      out_term = term;
     } else {
-      break;
+      // Stack this on as an application.
+      out_term = new App(out_term, term);
+    }
+
+    // End when we reach the end of the string.
+    if (s.done()) {
+      return out_term;
     }
   }
-  return out_term;
 }
 
 /**
  * Parse a non-application expression: a variable or an abstraction, or a
  * parenthesized expression.
  */
-function parse_term(s: Scanner): Expr | null {
+function parse_term(s: Scanner): Expr {
   // Try a variable occurrence.
   let vbl = parse_var(s);
   if (vbl) {
@@ -93,13 +106,11 @@ function parse_term(s: Scanner): Expr | null {
     if (s.scan(/\)/)) {
       return expr;
     } else {
-      // Unbalanced parentheses.
-      return null;
+      throw new ParseError("unbalanced parentheses");
     }
   }
 
-  // Nothing found.
-  return null;
+  throw new ParseError("no term found");
 }
 
 /**
@@ -139,20 +150,17 @@ function parse_abs(s: Scanner): Expr | null {
 
   // Body.
   let body = parse_expr(s);
-  if (!body) {
-    return null;
-  }
   return new Abs(name, body);
 }
 
 /**
  * Parse a lambda-calculus expression from a string.
  */
-export function parse(s: string): Expr | null {
+export function parse(s: string): Expr {
   let scanner = new Scanner(s);
   let expr = parse_expr(scanner);
   if (scanner.offset < s.length) {
-    console.error("parsing ended at offset", scanner.offset);
+    throw new ParseError("parsing ended at offset " + scanner.offset);
   }
   return expr;
 }

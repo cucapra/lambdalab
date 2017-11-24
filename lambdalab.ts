@@ -50,10 +50,11 @@ function runCode(code: string): string[] | null {
     steps.push(pretty(expr));
 
     // Take a step, if possible.
-    expr = reduce(expr);
-    if (expr === null) {
+    let next_expr = reduce(expr);
+    if (!next_expr) {
       break;
     }
+    expr = next_expr;
   }
 
   return steps;
