@@ -33,14 +33,15 @@ function insertText(text: string) {
 }
 
 /**
- * Execute a lambda-calculus expression in a string and display the results.
+ * Execute a lambda-calculus expression in a string. Return a new set of steps
+ * to display, or nothing if the expression did not parse.
  */
-function runCode(code: string, resultList: HTMLElement) {
+function runCode(code: string): string[] | null {
   let expr = parse(code);
 
   if (!expr) {
     console.log("parse error: " + code);
-    return;
+    return null;
   }
 
   let steps: string[] = [];
@@ -55,7 +56,7 @@ function runCode(code: string, resultList: HTMLElement) {
     }
   }
 
-  showResult(steps, resultList);
+  return steps;
 }
 
 /**
@@ -73,7 +74,13 @@ function hide(el: HTMLElement) {
  * result string. Eventually, this should be able to add many <li>s to show
  * the process of beta-reduction.
  */
-function showResult(res: ReadonlyArray<string>, resultList: HTMLElement) {
+function showResult(res: ReadonlyArray<string>, resultList: HTMLElement,
+                    helpText: HTMLCollectionOf<Element>) {
+  // Hide the help text on first successful execution.
+  for (let i = 0; i < helpText.length; ++i) {
+    hide(helpText[i] as HTMLElement);
+  }
+
   // Clear the old contents.
   let range = document.createRange();
   range.selectNodeContents(resultList);
@@ -94,14 +101,12 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
                helpText: HTMLCollectionOf<Element>) {
   // Run the code currently entered into the box.
   function execute() {
-    // Hide the help text on first execution.
-    for (let i = 0; i < helpText.length; ++i) {
-      hide(helpText[i] as HTMLElement);
-    }
-
     // Parse and execute.
     let code = programBox.textContent!;
-    runCode(code, resultList);
+    let result = runCode(code);
+    if (result) {
+      showResult(result, resultList, helpText);
+    }
   }
 
   // Focus in the code box.
