@@ -1,7 +1,7 @@
 /**
  * The Web interface.
  */
-import { parse } from './lib/parse';
+import { parse, ParseError } from './lib/parse';
 import { pretty } from './lib/ast';
 import { reduce } from './lib/reduce';
 
@@ -37,11 +37,16 @@ function insertText(text: string) {
  * to display, or nothing if the expression did not parse.
  */
 function runCode(code: string): string[] | null {
-  let expr = parse(code);
-
-  if (!expr) {
-    console.log("parse error: " + code);
-    return null;
+  let expr;
+  try {
+    expr = parse(code);
+  } catch (e) {
+    if (e instanceof ParseError) {
+      console.log(`parse error for "${code}" @ ${e.pos}: ${e.msg}`);
+      return null;
+    } else {
+      throw(e);
+    }
   }
 
   let steps: string[] = [];
