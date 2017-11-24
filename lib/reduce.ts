@@ -11,7 +11,27 @@ function is_value(e: Expr): boolean {
 }
 
 /**
- * Perform capture-avoiding substitution.
+ * Get the free variables in an expresison.
+ */
+function fv(e: Expr): ReadonlyArray<string> {
+  // TODO
+  return [];
+}
+
+/**
+ * Create a version of the variable name x that is not
+ * already present in the array. 
+ */
+function fresh(x: string, taken: ReadonlyArray<string>) {
+  let suffix = 0;
+  while (taken.indexOf(x + suffix) !== -1) {
+    suffix++;
+  }
+  return x + suffix;
+}
+
+/**
+ * Perform capture-avoiding substitution: e[v/x].
  */
 function subst(e: Expr, v: Expr, x: string): Expr {
   switch (e.kind) {
@@ -26,7 +46,21 @@ function subst(e: Expr, v: Expr, x: string): Expr {
     return new App(subst(e.e1, v, x), subst(e.e2, v, x));
   
   case "abs":
-    return "tk";
+    if (e.vbl === x) {
+      // Bound here.
+      return e;
+    } else {
+      let freevars = fv(v);
+      if (freevars.indexOf(e.vbl) === -1) {
+        // Bound variable not free in v.
+        return new Abs(e.vbl, subst(e.body, v, x));
+      } else {
+        // Rename the newly-bound variable.
+        let y = fresh(e.vbl, freevars);
+        let body = subst(e.body, new Var(y), e.vbl);
+        return new Abs(y, body);
+      }
+    }
   }
 }
 

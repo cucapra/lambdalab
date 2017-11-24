@@ -7,7 +7,9 @@
  */
 export class Var {
   kind: "var";
-  constructor(public name: string) {};
+  constructor(
+    public readonly name: string
+  ) {};
 }
 
 /**
@@ -15,7 +17,10 @@ export class Var {
  */
 export class App {
   kind: "app";
-  constructor(public e1: Expr, public e2: Expr) {};
+  constructor(
+    public readonly e1: Expr,
+    public readonly e2: Expr
+  ) {};
 }
 
 /**
@@ -23,7 +28,10 @@ export class App {
  */
 export class Abs {
   kind: "abs";
-  constructor(public vbl: string, public body: Expr) {};
+  constructor(
+    public readonly vbl: string,
+    public readonly body: Expr
+  ) {};
 }
 
 /**
