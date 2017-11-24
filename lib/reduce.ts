@@ -26,7 +26,7 @@ function fv(e: Expr): ReadonlyArray<string> {
 
 /**
  * Create a version of the variable name x that is not
- * already present in the array. 
+ * already present in the array.
  */
 function fresh(x: string, taken: ReadonlyArray<string>) {
   let suffix = 0;
@@ -47,10 +47,10 @@ function subst(e: Expr, v: Expr, x: string): Expr {
     } else {
       return e;
     }
-  
+
   case "app":
     return new App(subst(e.e1, v, x), subst(e.e2, v, x));
-  
+
   case "abs":
     if (e.vbl === x) {
       // Bound here.
