@@ -4,7 +4,7 @@
   "dependencies": {},
   "devDependencies": {
     "@types/tape": "^4.2.29",
-    "tape": "^4.6.3",
+    "tape": "^4.8.0",
     "typescript": "^2.6.1",
     "webpack": "^2.2.1"
   },
@@ -13,7 +13,7 @@
     "build": "tsc",
     "build-web": "tsc -p tsconfig.web.json && webpack",
     "build-cli": "tsc -p tsconfig.cli.json",
-    "test": "tsc -p test && node build/test_parse.js"
+    "test": "tsc -p test && tape build/test/test_*.js"
   },
   "bin": {
     "lc": "build/lc.js"
