@@ -14,8 +14,14 @@ function is_value(e: Expr): boolean {
  * Get the free variables in an expresison.
  */
 function fv(e: Expr): ReadonlyArray<string> {
-  // TODO
-  return [];
+  switch (e.kind) {
+  case "var":
+    return [e.name];
+  case "app":
+    return fv(e.e1).concat(fv(e.e2) as string[]);
+  case "abs":
+    return fv(e.body).filter(x => x != e.vbl);
+  }
 }
 
 /**
