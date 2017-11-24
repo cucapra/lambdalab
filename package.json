@@ -5,7 +5,7 @@
   "devDependencies": {
     "@types/tape": "^4.2.29",
     "tape": "^4.6.3",
-    "typescript": "^2.1.4",
+    "typescript": "^2.6.1",
     "webpack": "^2.2.1"
   },
   "license": "MIT",
