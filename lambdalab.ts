@@ -37,21 +37,25 @@ function insertText(text: string) {
  */
 function runCode(code: string, resultList: HTMLElement) {
   let expr = parse(code);
-  if (expr) {
-    let steps: string[] = [];
 
-    for (let i = 0; i < TIMEOUT; ++i) {
-      steps.push(pretty(expr));
-
-      // Take a step, if possible.
-      expr = reduce(expr);
-      if (expr === null) {
-        break;
-      }
-    }
-
-    showResult(steps, resultList);
+  if (!expr) {
+    console.log("parse error: " + code);
+    return;
   }
+
+  let steps: string[] = [];
+
+  for (let i = 0; i < TIMEOUT; ++i) {
+    steps.push(pretty(expr));
+
+    // Take a step, if possible.
+    expr = reduce(expr);
+    if (expr === null) {
+      break;
+    }
+  }
+
+  showResult(steps, resultList);
 }
 
 /**
@@ -88,6 +92,18 @@ function showResult(res: ReadonlyArray<string>, resultList: HTMLElement) {
  */
 function setUp(programBox: HTMLElement, resultList: HTMLElement,
                helpText: HTMLCollectionOf<Element>) {
+  // Run the code currently entered into the box.
+  function execute() {
+    // Hide the help text on first execution.
+    for (let i = 0; i < helpText.length; ++i) {
+      hide(helpText[i] as HTMLElement);
+    }
+
+    // Parse and execute.
+    let code = programBox.textContent!;
+    runCode(code, resultList);
+  }
+
   // Focus in the code box.
   programBox.focus();
 
@@ -101,17 +117,15 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
       insertText("λ");
 
     } else if (event.key === "Enter") {
+      // Run immediately.
       event.preventDefault();
-
-      // Hide the help text on first execution.
-      for (let i = 0; i < helpText.length; ++i) {
-        hide(helpText[i] as HTMLElement);
-      }
-
-      // Parse and execute.
-      let code = programBox.textContent!;
-      runCode(code, resultList);
+      execute();
     }
+  });
+
+  programBox.addEventListener("input", (event) => {
+    // Run whenever the parse succeeds.
+    execute();
   });
 }
 
