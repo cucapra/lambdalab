@@ -11,6 +11,6 @@ test('value', (t) => {
 
 test('idid', (t) => {
   let res = reduce(parse("(\\x. x) (\\y. y)")!);
-  t.equal(pretty(res!), "\\y. y");
+  t.equal(pretty(res!), "λy. y");
   t.end();
 });
