@@ -9,7 +9,9 @@ export class Var {
   kind: "var";
   constructor(
     public readonly name: string
-  ) {};
+  ) {
+    this.kind = "var";
+  };
 }
 
 /**
@@ -20,7 +22,9 @@ export class App {
   constructor(
     public readonly e1: Expr,
     public readonly e2: Expr
-  ) {};
+  ) {
+    this.kind = "app";
+  };
 }
 
 /**
@@ -31,7 +35,9 @@ export class Abs {
   constructor(
     public readonly vbl: string,
     public readonly body: Expr
-  ) {};
+  ) {
+    this.kind = "abs";
+  };
 }
 
 /**
@@ -43,12 +49,14 @@ export type Expr = Var | App | Abs;
  * Pretty-print a lambda-calculus expression as a string.
  */
 export function pretty(e: Expr): string {
-  if (e instanceof Var) {
+  switch (e.kind) {
+  case "var":
     return e.name;
-  } else if (e instanceof Abs) {
-    return "λ" + e.vbl + ". " + pretty(e.body);
-  } else if (e instanceof App) {
 
+  case "abs":
+    return "λ" + e.vbl + ". " + pretty(e.body);
+
+  case "app":
     // Parenthesize abstractions on the left.
     let lhs = pretty(e.e1);
     if (e.e1 instanceof Abs) {
@@ -63,5 +71,4 @@ export function pretty(e: Expr): string {
 
     return lhs + " " + rhs;
   }
-  throw "unknown syntax form";
 }
