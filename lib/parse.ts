@@ -66,6 +66,14 @@ function parse_expr(s: Scanner): Expr {
   while (true) {
     let term = parse_term(s);
 
+    // Could not parse a term here.
+    if (!term) {
+      if (out_term === null) {
+        throw new ParseError("no term found");
+      }
+      return out_term;
+    }
+
     // Accumulate the newly-parsed term.
     skip_whitespace(s);
     if (out_term === null) {
@@ -75,11 +83,6 @@ function parse_expr(s: Scanner): Expr {
       // Stack this on as an application.
       out_term = new App(out_term, term);
     }
-
-    // End when we reach the end of the string.
-    if (s.done()) {
-      return out_term;
-    }
   }
 }
 
@@ -87,7 +90,7 @@ function parse_expr(s: Scanner): Expr {
  * Parse a non-application expression: a variable or an abstraction, or a
  * parenthesized expression.
  */
-function parse_term(s: Scanner): Expr {
+function parse_term(s: Scanner): Expr | null {
   // Try a variable occurrence.
   let vbl = parse_var(s);
   if (vbl) {
@@ -110,7 +113,8 @@ function parse_term(s: Scanner): Expr {
     }
   }
 
-  throw new ParseError("no term found");
+  // No term here.
+  return null;
 }
 
 /**
