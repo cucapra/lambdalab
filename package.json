@@ -5,13 +5,14 @@
   "devDependencies": {
     "@types/tape": "^4.2.29",
     "tape": "^4.8.0",
+    "ts-loader": "^3.1.1",
     "typescript": "^2.6.1",
-    "webpack": "^2.2.1"
+    "webpack": "^3.8.1"
   },
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "build-web": "tsc -p tsconfig.web.json && webpack",
+    "build-web": "webpack",
     "build-cli": "tsc -p tsconfig.cli.json",
     "test": "tsc -p test && tape build/test/test_*.js"
   },
