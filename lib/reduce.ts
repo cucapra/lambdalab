@@ -64,7 +64,7 @@ function subst(e: Expr, v: Expr, x: string): Expr {
         // Rename the newly-bound variable.
         let y = fresh(e.vbl, freevars);
         let body = subst(e.body, new Var(y), e.vbl);
-        return new Abs(y, body);
+        return new Abs(y, subst(body, v, x));
       }
     }
   }
