@@ -73,7 +73,7 @@ function parse_expr(s: Scanner): Expr {
     // Could not parse a term here.
     if (!term) {
       if (out_term === null) {
-        throw s.error("no term found");
+        throw s.error("expected term");
       }
       return out_term;
     }
@@ -168,7 +168,7 @@ export function parse(s: string): Expr {
   let scanner = new Scanner(s);
   let expr = parse_expr(scanner);
   if (scanner.offset < s.length) {
-    throw scanner.error("parsing ended prematurely");
+    throw scanner.error("unexpected token");
   }
   return expr;
 }

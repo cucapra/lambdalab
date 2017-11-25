@@ -106,12 +106,21 @@ function showError(programBox: HTMLElement, errorBox: HTMLElement,
                    error: ParseError) {
   console.log(`parse error in "${programBox.textContent!}" @ ` +
               `${error.pos}: ${error.msg}`);
+  
+  // Character position to display. If it's past the end of the
+  // string (e.g., when a balanced paren is missing), move it
+  // back to the last character of the input code.
+  let pos = error.pos;
+  let codeLength = programBox.innerText.length;
+  if (pos >= codeLength) {
+    pos = codeLength - 1;
+  }
 
   // Where is the position with the error, visually?
   let text = programBox.firstChild!;  // Contents of the box.
   let range = document.createRange();
-  range.setStart(text, error.pos);
-  range.setEnd(text, error.pos + 1);
+  range.setStart(text, pos);
+  range.setEnd(text, pos + 1);
   let rect = range.getBoundingClientRect();
 
   // Place the error indicator there.
