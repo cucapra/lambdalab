@@ -102,23 +102,42 @@ function showResult(res: ReadonlyArray<string>, resultList: HTMLElement,
 /**
  * Display a parser error.
  */
-function showError(programBox: HTMLElement, error: ParseError) {
-  console.log(`parse error for "${programBox.textContent!}" @ ` +
+function showError(programBox: HTMLElement, errorBox: HTMLElement,
+                   error: ParseError) {
+  console.log(`parse error in "${programBox.textContent!}" @ ` +
               `${error.pos}: ${error.msg}`);
+
+  // Where is the position with the error, visually?
+  let text = programBox.firstChild!;  // Contents of the box.
+  let range = document.createRange();
+  range.setStart(text, error.pos);
+  range.setEnd(text, error.pos + 1);
+  let rect = range.getBoundingClientRect();
+
+  // Place the error indicator there.
+  errorBox.style['display'] = 'block';
+  console.log(rect.left + 'px');
+  errorBox.style.left = rect.left + 'px';
+  errorBox.style.top = rect.top + 'px';
+
+  // Set the contents of the error message.
+  let msgBox = document.getElementById("errorMessage")!;
+  msgBox.innerText = error.msg;
 }
 
 /**
  * Set up the event handlers. This is called when the DOM is first loaded.
  */
 function setUp(programBox: HTMLElement, resultList: HTMLElement,
-               helpText: HTMLCollectionOf<Element>) {
+               helpText: HTMLCollectionOf<Element>,
+               errorBox: HTMLElement) {
   // Run the code currently entered into the box.
   function execute() {
     // Parse and execute.
     let code = programBox.textContent!;
     let result = runCode(code);
     if (result instanceof ParseError) {
-      showError(programBox, result);
+      showError(programBox, errorBox, result);
     } else {
       showResult(result, resultList, helpText);
     }
@@ -154,5 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let programBox = document.getElementById("program")!;
   let resultList = document.getElementById("result")!;
   let helpText = document.getElementsByClassName("help");
-  setUp(programBox, resultList, helpText);
+  let errorBox = document.getElementById("error")!;
+  setUp(programBox, resultList, helpText, errorBox);
 });

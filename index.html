@@ -24,6 +24,12 @@
                 padding-left: 0;
                 font-size: 150%;
             }
+
+            #error {
+                display: none;
+                color: red;
+                position: absolute;
+            }
         </style>
     </head>
     <body>
@@ -33,6 +39,11 @@
         <ul id="result"></ul>
 
         <p class="help">Press the backslash key to type a λ.</p>
+
+        <div id="error">
+            !!!
+            <span id="errorMessage"></span>
+        </div>
 
         <script src="lambdalab.bundle.js"></script>
     </body>
