@@ -116,13 +116,19 @@ function showError(programBox: HTMLElement, errorBox: HTMLElement,
 
   // Place the error indicator there.
   errorBox.style['display'] = 'block';
-  console.log(rect.left + 'px');
   errorBox.style.left = rect.left + 'px';
   errorBox.style.top = rect.top + 'px';
 
   // Set the contents of the error message.
   let msgBox = document.getElementById("errorMessage")!;
   msgBox.innerText = error.msg;
+}
+
+/**
+ * Remove the current error being displayed.
+ */
+function clearError(errorBox: HTMLElement) {
+  errorBox.style['display'] = 'none';
 }
 
 /**
@@ -139,6 +145,7 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
     if (result instanceof ParseError) {
       showError(programBox, errorBox, result);
     } else {
+      clearError(errorBox);
       showResult(result, resultList, helpText);
     }
   }
