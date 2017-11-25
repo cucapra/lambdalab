@@ -108,7 +108,7 @@ function posInText(nodes: NodeList, pos: number): [Node, number] {
   for (let i = 0; i < nodes.length; ++i) {
     let child = nodes[i];
     if (child instanceof Text) {
-      let len = child.wholeText.length;
+      let len = child.data.length;
       if (pos <= len) {
         return [child, pos];
       } else {
