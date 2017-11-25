@@ -100,6 +100,28 @@ function showResult(res: ReadonlyArray<string>, resultList: HTMLElement,
 }
 
 /**
+ * Given a list of text nodes and an offset into the concatenated text
+ * they represent, return the text node where this offset lies and the
+ * corresponding offset within that node.
+ */
+function posInText(nodes: NodeList, pos: number): [Node, number] {
+  for (let i = 0; i < nodes.length; ++i) {
+    let child = nodes[i];
+    if (child instanceof Text) {
+      let len = child.wholeText.length;
+      if (pos <= len) {
+        return [child, pos];
+      } else {
+        pos -= len;
+      }
+    } else {
+      throw "found non-text node";
+    }
+  }
+  throw "out of range";
+}
+
+/**
  * Display a parser error.
  */
 function showError(programBox: HTMLElement, errorBox: HTMLElement,
@@ -117,10 +139,15 @@ function showError(programBox: HTMLElement, errorBox: HTMLElement,
   }
 
   // Where is the position with the error, visually?
+  for (let i = 0; i < programBox.childNodes.length; ++i) {
+    let child = programBox.childNodes[i];
+  }
   let text = programBox.firstChild!;  // Contents of the box.
   let range = document.createRange();
-  range.setStart(text, pos);
-  range.setEnd(text, pos + 1);
+  let [startNode, startOff] = posInText(programBox.childNodes, pos);
+  range.setStart(startNode, startOff);
+  let [endNode, endOff] = posInText(programBox.childNodes, pos + 1);
+  range.setEnd(endNode, endOff);
   let rect = range.getBoundingClientRect();
 
   // Place the error indicator there.
