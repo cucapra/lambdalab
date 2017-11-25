@@ -177,6 +177,11 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
   function execute() {
     // Parse and execute.
     let code = programBox.textContent!;
+    if (!code.trim()) {
+      // No code: do nothing.
+      clearError(errorBox);
+      return;
+    }
     let result = runCode(code);
     if (result instanceof ParseError) {
       showError(programBox, errorBox, result);
