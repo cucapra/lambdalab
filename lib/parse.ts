@@ -4,6 +4,16 @@
 import { Expr, Abs, App, Var } from './ast';
 
 /**
+ * A parser error.
+ *
+ * Errors include a human-readable message and an offset in the string
+ * indicating where the error occurred.
+ */
+export class ParseError {
+  constructor(public msg: string, public pos: number) {}
+}
+
+/**
  * A simple tokenization helper that advances an offset in a string.
  */
 class Scanner {
@@ -46,13 +56,6 @@ class Scanner {
   error(msg: string) {
     return new ParseError(msg, this.offset);
   }
-}
-
-/**
- * Parser errors.
- */
-export class ParseError {
-  constructor(public msg: string, public pos: number) {}
 }
 
 /**
