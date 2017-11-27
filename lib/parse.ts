@@ -1,8 +1,5 @@
 /**
  * A very simple recursive-descent parser for the plain lambda-calculus.
- *
- * This version currently just returns `null` when any error is encountered.
- * Eventually, it should produce useful error information.
  */
 import { Expr, Abs, App, Var } from './ast';
 
@@ -16,6 +13,11 @@ class Scanner {
     this.offset = 0;
   }
 
+  /**
+   * Match the regular expression at the current offset, return the match, and
+   * advance the current position past the matched string. Or, if the regular
+   * expression does not match here, return null.
+   */
   scan(re: RegExp): string | null {
     let match = this.str.substring(this.offset).match(re);
     if (!match) {
@@ -30,10 +32,17 @@ class Scanner {
     }
   }
 
+  /**
+   * Check whether the entire string has been consumed.
+   */
   done() {
     return this.offset === this.str.length;
   }
 
+  /**
+   * Create a ParseError with the given message that refers to the current
+   * source position of the parser.
+   */
   error(msg: string) {
     return new ParseError(msg, this.offset);
   }
@@ -163,6 +172,8 @@ function parse_abs(s: Scanner): Expr | null {
 
 /**
  * Parse a lambda-calculus expression from a string.
+ *
+ * May throw a `ParseError` when the expression is not a valid term.
  */
 export function parse(s: string): Expr {
   let scanner = new Scanner(s);
