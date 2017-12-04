@@ -24,6 +24,6 @@ clean:
 .PHONY: deploy
 RSYNCARGS := --compress --recursive --checksum --itemize-changes \
 	--delete -e ssh --perms --chmod=Du=rwx,Dgo=rx,Fu=rw,Fog=r
-DEST := courses:coursewww/capra.cs.cornell.edu/htdocs/public/lambdalab
+DEST := courses:coursewww/capra.cs.cornell.edu/htdocs/lambdalab
 deploy: dist
 	rsync $(RSYNCARGS) dist/ $(DEST)
