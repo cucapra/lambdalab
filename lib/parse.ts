@@ -1,7 +1,7 @@
 /**
  * A very simple recursive-descent parser for the plain lambda-calculus.
  */
-import { Expr, Abs, App, Var } from './ast';
+import { Expr, Abs, App, Var, Macro } from './ast';
 
 /**
  * A parser error.
@@ -18,9 +18,11 @@ export class ParseError {
  */
 class Scanner {
   public offset: number;
+  public macro_lookup : {[name : string] : Abs}; 
 
   constructor(public str: string) {
     this.offset = 0;
+    this.macro_lookup = {};
   }
 
   /**
@@ -66,10 +68,17 @@ function skip_whitespace(s: Scanner): void {
 }
 
 /**
- * Parse a variable name.
+ * Parse a variable name. Variable names are lowercase
  */
-function parse_ident(s: Scanner): string | null {
-  return s.scan(/[A-Za-z0-9]+/);
+function parse_var_name(s: Scanner): string | null {
+  return s.scan(/[a-z0-9]+/);
+}
+
+/**
+ * Parse a macro name. Macro names are uppercase
+ */
+function parse_macro_name(s: Scanner): string | null {
+  return s.scan(/[A-Z]+/);
 }
 
 /**
@@ -113,6 +122,12 @@ function parse_term(s: Scanner): Expr | null {
     return vbl;
   }
 
+  // Try a macro.
+  let mac = parse_macro(s);
+  if (mac) {
+    return mac;
+  }
+
   // Try an abstraction.
   let abs = parse_abs(s);
   if (abs) {
@@ -137,9 +152,26 @@ function parse_term(s: Scanner): Expr | null {
  * Parse a variable occurrence.
  */
 function parse_var(s: Scanner): Expr | null {
-  let name = parse_ident(s);
+  let name = parse_var_name(s);
   if (name) {
     return new Var(name);
+  } else {
+    return null;
+  }
+}
+
+/**
+ * Parse a macro occurrence.
+ */
+function parse_macro(s: Scanner): Expr | null {
+  let name = parse_macro_name(s);
+  if (name) {
+    // TODO: obtain the relevant abstraction from the macro lookup table
+    let abs = s.macro_lookup[name];
+    if (!abs) {
+      throw s.error("Undefined macro name")
+    }
+    return new Macro(name, abs);
   } else {
     return null;
   }
@@ -156,7 +188,7 @@ function parse_abs(s: Scanner): Expr | null {
   skip_whitespace(s);
 
   // Variable.
-  let name = parse_ident(s);
+  let name = parse_var_name(s);
   if (!name) {
     throw s.error("expected variable name after lambda");
   }
@@ -174,12 +206,39 @@ function parse_abs(s: Scanner): Expr | null {
 }
 
 /**
+ * Initialize the scanner to contain a number of pre-defined macros that will probably
+ * be nice to have. 
+ * 
+ * // TODO: It would be nicer to have this in a config file at some point  
+ * // TODO: There is currently no way to allow users to expand this list of macros
+ */
+
+function init_macros(s : Scanner) : void {
+  // SUCC := λn. λf. λx. f (n f x)
+  s.macro_lookup["SUCC"] = new Abs("n", new Abs("f", new Abs("x", new App(new Var("f"),  
+                            new App(new App(new Var("n"), new Var("f")), new Var("x")))))); 
+  // ZERO := λf. λx. x
+  s.macro_lookup["ZERO"] = new Abs("f", new Abs("x", new Var("x")));
+  // ONE  := λf. λx. f x
+  s.macro_lookup["ONE"] = new Abs("f", new Abs("x", new App(new Var("f"), new Var("x"))));
+  // PLUS := λm. λn. n SUCC m
+  s.macro_lookup["PLUS"] = new Abs("m", new Abs("n", new App(new App(new Var("n"), 
+                             new Macro("SUCC", s.macro_lookup["SUCC"])), new Var("m"))));
+
+  // TRUE := λa. λb. a
+  s.macro_lookup["TRUE"] = new Abs("a", new Abs("b", new Var("a")));
+  // FALSE := λa. λb. b
+  s.macro_lookup["TRUE"] = new Abs("a", new Abs("b", new Var("b")));
+}
+
+/**
  * Parse a lambda-calculus expression from a string.
  *
  * May throw a `ParseError` when the expression is not a valid term.
  */
 export function parse(s: string): Expr {
   let scanner = new Scanner(s);
+  init_macros(scanner);
   let expr = parse_expr(scanner);
   if (scanner.offset < s.length) {
     throw scanner.error("unexpected token");

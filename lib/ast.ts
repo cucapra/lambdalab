@@ -41,9 +41,24 @@ export class Abs {
 }
 
 /**
+ * The macro syntax form. Macros must be closed values
+ * TODO: currently this does not enforce that macros are closed, so defining a macro with 
+ * free variables can still result in variable capture
+ */
+export class Macro {
+  kind: "macro";
+  constructor(
+    public readonly name: string,
+    public readonly abs: Abs
+  ) {
+    this.kind = "macro";
+  };
+}
+
+/**
  * Any lambda-term.
  */
-export type Expr = Var | App | Abs;
+export type Expr = Var | App | Abs | Macro;
 
 /**
  * Pretty-print a lambda-calculus expression as a string.
@@ -55,7 +70,10 @@ export function pretty(e: Expr): string {
 
   case "abs":
     return "λ" + e.vbl + ". " + pretty(e.body);
-
+  
+  case "macro":
+    return e.name;
+    
   case "app":
     // Parenthesize abstractions on the left.
     let lhs = pretty(e.e1);

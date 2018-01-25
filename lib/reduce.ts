@@ -1,13 +1,13 @@
 /**
  * Beta-reduction for lambda-terms.
  */
-import { Expr, Abs, App, Var } from './ast';
+import { Expr, Abs, App, Var, Macro } from './ast';
 
 /**
  * Check whether a lambda-term is a value.
  */
 function is_value(e: Expr): boolean {
-  return e.kind === "abs";
+  return e.kind === "abs" || e.kind === "macro";
 }
 
 /**
@@ -21,6 +21,8 @@ function fv(e: Expr): ReadonlyArray<string> {
     return fv(e.e1).concat(fv(e.e2) as string[]);
   case "abs":
     return fv(e.body).filter(x => x != e.vbl);
+  case "macro":
+    return [];
   }
 }
 
@@ -67,6 +69,9 @@ function subst(e: Expr, v: Expr, x: string): Expr {
         return new Abs(y, subst(body, v, x));
       }
     }
+  case "macro":
+    //Don't substitute into macros because they are closed
+    return e;
   }
 }
 
@@ -95,6 +100,10 @@ export function reduce(e: Expr): Expr | null {
   // Let's do the time warp again.
   if (e.e1.kind === "abs") {
     return subst(e.e1.body, e.e2, e.e1.vbl);
+  }
+
+  if (e.e1.kind == "macro") {
+    return new App(e.e1.abs, e.e2);
   }
 
   return null;
