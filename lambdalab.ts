@@ -2,8 +2,8 @@
  * The Web interface.
  */
 import { parse, ParseError } from './lib/parse';
-import { pretty } from './lib/ast';
-import { reduce } from './lib/reduce';
+import { pretty, Expr, Var, App, Abs, Macro } from './lib/ast';
+import { reduce_cbv, reduce_cbn, reduce_full } from './lib/reduce';
 
 /**
  * How many reduction steps to execute before timing out?
@@ -36,7 +36,8 @@ function insertText(text: string) {
  * Execute a lambda-calculus expression in a string. Return a new set of steps
  * to display or a parse error.
  */
-function runCode(code: string): string[] | ParseError {
+function runCode(code: string, 
+          reduce : (e: Expr) => Var | App | Abs | Macro | null): string[] | ParseError {
   let expr;
   try {
     expr = parse(code);
@@ -171,7 +172,7 @@ function clearError(errorBox: HTMLElement) {
  * Set up the event handlers. This is called when the DOM is first loaded.
  */
 function setUp(programBox: HTMLElement, resultList: HTMLElement,
-               helpText: HTMLCollectionOf<Element>,
+               strategies : NodeListOf<HTMLInputElement>, helpText: HTMLCollectionOf<Element>,
                errorBox: HTMLElement) {
   // Run the code currently entered into the box.
   function execute() {
@@ -182,7 +183,21 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
       clearError(errorBox);
       return;
     }
-    let result = runCode(code);
+
+    let strategy;
+    for (var i = 0; i < strategies.length; i++) {
+      if (strategies[i].checked) 
+        strategy = strategies[i].value;
+    }
+
+    // Determine the selected reduction strategy
+    let reduce = reduce_cbv;
+    if (strategy === "cbn")
+      reduce = reduce_cbn;
+    if (strategy === "full")
+      reduce = reduce_full;
+
+    let result = runCode(code, reduce);
     if (result instanceof ParseError) {
       showError(programBox, errorBox, result);
     } else {
@@ -219,8 +234,9 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
 // Event handler for document setup.
 document.addEventListener("DOMContentLoaded", () => {
   let programBox = document.getElementById("program")!;
+  let strategies = document.getElementsByName("evalStrat")! as NodeListOf<HTMLInputElement>;
   let resultList = document.getElementById("result")!;
   let helpText = document.getElementsByClassName("help");
   let errorBox = document.getElementById("error")!;
-  setUp(programBox, resultList, helpText, errorBox);
+  setUp(programBox, resultList, strategies, helpText, errorBox);
 });

@@ -228,7 +228,7 @@ function init_macros(s : Scanner) : void {
   // TRUE := λa. λb. a
   s.macro_lookup["TRUE"] = new Abs("a", new Abs("b", new Var("a")));
   // FALSE := λa. λb. b
-  s.macro_lookup["TRUE"] = new Abs("a", new Abs("b", new Var("b")));
+  s.macro_lookup["FALSE"] = new Abs("a", new Abs("b", new Var("b")));
 }
 
 /**

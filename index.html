@@ -46,6 +46,26 @@
             <span id="errorMessage"></span>
         </div>
 
+        <form id="strategy" action="">
+            <label>Reduction Strategy</label>            
+            <input type = "radio"
+                   name = "evalStrat"
+                   id = "cbv"
+                   value = "cbv"
+                   checked = "checked" />
+            <label for = "cbv">Call-By-Value</label>
+            <input type = "radio"
+                   name = "evalStrat"
+                   id = "cbn"
+                   value = "cbn" />
+            <label for = "cbn">Call-By-Name</label>
+            <input type = "radio"
+                   name = "evalStrat"
+                   id = "full"
+                   value = "full" />
+            <label for = "full">Full Normal Order</label>
+        </form>
+
         <script src="lambdalab.bundle.js"></script>
     </body>
 </html>
