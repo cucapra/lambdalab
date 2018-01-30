@@ -239,6 +239,13 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
     // Run whenever the parse succeeds.
     execute();
   });
+
+  for (var i = 0; i < strategies.length; i++) {
+    strategies[i].addEventListener("click", (event) => {
+      // Run whenever the evaluation strategy is changed.
+      execute();
+    });
+  }
 }
 
 // Event handler for document setup.
