@@ -2,6 +2,7 @@
  * A very simple recursive-descent parser for the plain lambda-calculus.
  */
 import { Expr, Abs, App, Var, Macro } from './ast';
+import { skip } from 'tape';
 
 /**
  * A parser error.
@@ -16,13 +17,21 @@ export class ParseError {
 /**
  * A simple tokenization helper that advances an offset in a string.
  */
-class Scanner {
+export class Scanner {
   public offset: number;
   public macro_lookup : {[name : string] : Abs}; 
+  public str : string;
 
-  constructor(public str: string) {
+  constructor() {
     this.offset = 0;
+    this.str = "";
     this.macro_lookup = {};
+    init_macros(this);
+  }
+
+  set_string(s : string) {
+    this.offset = 0;
+    this.str = s;
   }
 
   /**
@@ -86,6 +95,8 @@ function parse_macro_name(s: Scanner): string | null {
  * a nested hierarchy of applications.
  */
 function parse_expr(s: Scanner): Expr {
+  console.log(s.macro_lookup);
+
   skip_whitespace(s);
   let out_term = null;
   while (true) {
@@ -231,16 +242,54 @@ function init_macros(s : Scanner) : void {
   s.macro_lookup["FALSE"] = new Abs("a", new Abs("b", new Var("b")));
 }
 
+/*
+ * Parses a macro definition and adds a new macro to the interpreter session. Expects
+ * definitions of form #define <MACRO> <EXPR> and will throw an error if this is not satisfied.
+ * Returns the expression being created as a macro
+ * 
+ * TODO: This only accepts macros without arguments right now
+ * TODO: There may potentially be issues with overwriting macros created during the deletion process
+ *       if there is a valid macro definition while deleting the original definition text
+ */
+
+function add_macro(s: Scanner) : void {
+  // Move scanner position to beginning of macro
+  s.scan(/#define/);
+  skip_whitespace(s);
+
+  // Determine macro
+  let macro_name = parse_macro_name(s);
+
+  if(!macro_name) {
+    throw s.error("Improperly formatted macro definition");
+  }
+
+  skip_whitespace(s);
+
+  // Parse macro and add it to scanner lookup
+  let expr = parse_expr(s);
+
+  if (expr.kind !== "abs") {
+    throw s.error("Macros must be values");
+  }
+
+  s.macro_lookup[macro_name] = expr;
+}
+
 /**
- * Parse a lambda-calculus expression from a string.
+ * Parse the current contents of the Scanner.
  *
  * May throw a `ParseError` when the expression is not a valid term.
  */
-export function parse(s: string): Expr {
-  let scanner = new Scanner(s);
-  init_macros(scanner);
+export function parse(scanner : Scanner): Expr | null {
+  // Define a new macro
+  if (scanner.str.substring(0,7) === "#define") {
+    add_macro(scanner);
+    return null;
+  }
+
   let expr = parse_expr(scanner);
-  if (scanner.offset < s.length) {
+  if (scanner.offset < scanner.str.length) {
     throw scanner.error("unexpected token");
   }
   return expr;

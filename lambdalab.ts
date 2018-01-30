@@ -1,7 +1,7 @@
 /**
  * The Web interface.
  */
-import { parse, ParseError } from './lib/parse';
+import { parse, ParseError, Scanner } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro } from './lib/ast';
 import { reduce_cbv, reduce_cbn, reduce_full } from './lib/reduce';
 
@@ -36,11 +36,11 @@ function insertText(text: string) {
  * Execute a lambda-calculus expression in a string. Return a new set of steps
  * to display or a parse error.
  */
-function runCode(code: string, 
+function runCode(scanner: Scanner, 
           reduce : (e: Expr) => Var | App | Abs | Macro | null): string[] | ParseError {
   let expr;
   try {
-    expr = parse(code);
+    expr = parse(scanner);
   } catch (e) {
     if (e instanceof ParseError) {
       return e;
@@ -50,6 +50,10 @@ function runCode(code: string,
   }
 
   let steps: string[] = [];
+
+  if (!expr) {
+    return steps;
+  }
 
   for (let i = 0; i < TIMEOUT; ++i) {
     steps.push(pretty(expr));
@@ -174,6 +178,10 @@ function clearError(errorBox: HTMLElement) {
 function setUp(programBox: HTMLElement, resultList: HTMLElement,
                strategies : NodeListOf<HTMLInputElement>, helpText: HTMLCollectionOf<Element>,
                errorBox: HTMLElement) {
+
+  // Set up the scanner so it falls within the scope of the execute callback
+  let scanner = new Scanner();
+
   // Run the code currently entered into the box.
   function execute() {
     // Parse and execute.
@@ -183,6 +191,8 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
       clearError(errorBox);
       return;
     }
+
+    scanner.set_string(code);
 
     let strategy;
     for (var i = 0; i < strategies.length; i++) {
@@ -197,7 +207,7 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
     if (strategy === "full")
       reduce = reduce_full;
 
-    let result = runCode(code, reduce);
+    let result = runCode(scanner, reduce);
     if (result instanceof ParseError) {
       showError(programBox, errorBox, result);
     } else {
