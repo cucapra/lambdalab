@@ -248,32 +248,41 @@ function init_macros(s : Scanner) : void {
  * Returns the expression being created as a macro
  * 
  * TODO: This only accepts macros without arguments right now
- * TODO: There may potentially be issues with overwriting macros created during the deletion process
- *       if there is a valid macro definition while deleting the original definition text
  */
 
-function add_macro(s: Scanner) : void {
+export function add_macro(s: Scanner) : Expr | ParseError {
   // Move scanner position to beginning of macro
-  s.scan(/#define/);
   skip_whitespace(s);
 
   // Determine macro
   let macro_name = parse_macro_name(s);
-
   if(!macro_name) {
-    throw s.error("Improperly formatted macro definition");
+    return s.error("Improperly formatted macro definition");
   }
+  skip_whitespace(s);
 
+  let eq = s.scan(/≜/);
+  if(!eq) {
+    return s.error("Improperly formatted macro definition");
+  }
   skip_whitespace(s);
 
   // Parse macro and add it to scanner lookup
-  let expr = parse_expr(s);
-
-  if (expr.kind !== "abs") {
-    throw s.error("Macros must be values");
+  try {
+    let expr = parse_expr(s);
+    if (expr.kind !== "abs") {
+      return s.error("Macros must be values");
+    }
+    s.macro_lookup[macro_name] = expr;
+    return expr;
   }
-
-  s.macro_lookup[macro_name] = expr;
+  catch (e) {
+    if (e instanceof ParseError) {
+      return e;
+    } else {
+      throw(e);
+    }
+  }
 }
 
 /**
@@ -282,12 +291,6 @@ function add_macro(s: Scanner) : void {
  * May throw a `ParseError` when the expression is not a valid term.
  */
 export function parse(scanner : Scanner): Expr | null {
-  // Define a new macro
-  if (scanner.str.substring(0,7) === "#define") {
-    add_macro(scanner);
-    return null;
-  }
-
   let expr = parse_expr(scanner);
   if (scanner.offset < scanner.str.length) {
     throw scanner.error("unexpected token");

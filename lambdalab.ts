@@ -1,7 +1,7 @@
 /**
  * The Web interface.
  */
-import { parse, ParseError, Scanner } from './lib/parse';
+import { parse, ParseError, Scanner, add_macro } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro } from './lib/ast';
 import { reduce_cbv, reduce_cbn, reduce_full } from './lib/reduce';
 
@@ -161,7 +161,8 @@ function showError(programBox: HTMLElement, errorBox: HTMLElement,
   errorBox.style.top = rect.top + 'px';
 
   // Set the contents of the error message.
-  let msgBox = document.getElementById("errorMessage")!;
+  let messageName = errorBox.id + "Message";
+  let msgBox = document.getElementById(messageName)!;
   msgBox.innerText = error.msg;
 }
 
@@ -173,14 +174,11 @@ function clearError(errorBox: HTMLElement) {
 }
 
 /**
- * Set up the event handlers. This is called when the DOM is first loaded.
+ * Set up the program event handlers. This is called when the DOM is first loaded.
  */
-function setUp(programBox: HTMLElement, resultList: HTMLElement,
-               strategies : NodeListOf<HTMLInputElement>, helpText: HTMLCollectionOf<Element>,
-               errorBox: HTMLElement) {
-
-  // Set up the scanner so it falls within the scope of the execute callback
-  let scanner = new Scanner();
+function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
+               strategies : NodeListOf<HTMLInputElement>, scanner : Scanner,
+               helpText: HTMLCollectionOf<Element>, errorBox: HTMLElement) {
 
   // Run the code currently entered into the box.
   function execute() {
@@ -248,12 +246,80 @@ function setUp(programBox: HTMLElement, resultList: HTMLElement,
   }
 }
 
+/**
+ * Set up the macro event handlers. This is called when the DOM is first loaded.
+ */
+function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
+  helpText: HTMLCollectionOf<Element>, errorBox: HTMLElement) {
+
+  let scanner = new Scanner();
+
+  // Run the code currently entered into the box.
+  function execute() {
+    // Parse and execute.
+    let code = macroBox.textContent!;
+    if (!code.trim()) {
+      // No code: do nothing.
+      clearError(errorBox);
+      return;
+    }
+
+    scanner.set_string(code);
+    let result = add_macro(scanner);
+
+    if (result instanceof ParseError) {
+      showError(macroBox, errorBox, result);
+    } else {
+      clearError(errorBox);
+      for (let i = 0; i < helpText.length; ++i) {
+        hide(helpText[i] as HTMLElement);
+      }
+    }
+  }
+
+  // Focus in the code box.
+  macroBox.focus();
+
+  macroBox.addEventListener("keypress", (event) => {
+    // When the user types \, insert a lambda instead.
+    if (event.key === "\\") {
+      // Don't insert the \ character.
+      event.preventDefault();
+
+      // Instead, we'll insert a lambda.
+      insertText("λ");
+
+    } else if (event.key === "=") {
+      // Don't insert the = character.
+      event.preventDefault();
+
+      // Instead, we'll insert a definition.
+      insertText("≜");
+
+    } else if (event.key === "Enter") {
+      // Run immediately.
+      event.preventDefault();
+      execute();
+    }
+  });
+
+  return scanner;
+}
+
 // Event handler for document setup.
 document.addEventListener("DOMContentLoaded", () => {
+  let macroBox = document.getElementById("macro")!;
+  let macroList = document.getElementById("macro_result")!;
+  let macroText = document.getElementsByClassName("macro_help");
+  let macroErrorBox = document.getElementById("macro_error")!;
+  let scanner = macroSetUp(macroBox, macroList, macroText, macroErrorBox);
+
   let programBox = document.getElementById("program")!;
   let strategies = document.getElementsByName("evalStrat")! as NodeListOf<HTMLInputElement>;
-  let resultList = document.getElementById("result")!;
-  let helpText = document.getElementsByClassName("help");
-  let errorBox = document.getElementById("error")!;
-  setUp(programBox, resultList, strategies, helpText, errorBox);
+  let programResultList = document.getElementById("program_result")!;
+  let programHelpText = document.getElementsByClassName("program_help");
+  let programErrorBox = document.getElementById("program_error")!;
+  programSetUp(programBox, programResultList, strategies, scanner,
+    programHelpText, programErrorBox);
+
 });

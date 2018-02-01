@@ -10,7 +10,7 @@
                 padding: 1rem 3rem;
             }
 
-            #program {
+            #program, #macro {
                 font-size: 250%;
                 outline: none;
             }
@@ -19,13 +19,17 @@
                 color: #999;
             }
 
-            #result {
+            form {
+                margin-bottom: 3cm;
+            }
+
+            #program_result, #macro_result {
                 list-style: none;
                 padding-left: 0;
                 font-size: 150%;
             }
 
-            #error {
+            #program_error, #macro_error {
                 display: none;
                 color: red;
                 position: absolute;
@@ -37,15 +41,13 @@
         <h1>λab</h1>
 
         <div id="program" contenteditable="true">λx. x</div>
-        <ul id="result"></ul>
+        <ul id="program_result"></ul>
 
-        <p class="help">Press the backslash key to type a λ. <br> Define a new macro with #define 
-            &lt MACRO &gt &lt content &gt. Macros should be closed values, and will be 
-            expanded when used in evaluation.</p>
+        <p class="program_help">Press the backslash key to type a λ.</p>
 
-        <div id="error">
+        <div id="program_error">
             ▼
-            <span id="errorMessage"></span>
+            <span id="program_errorMessage"></span>
         </div>
 
         <form id="strategy" action="">
@@ -67,6 +69,15 @@
                    value = "full" />
             <label for = "full">Full Normal Order</label>
         </form>
+        
+        <div id="macro" contenteditable="true">IF ≜ λb. λt. λf. b t f </div>
+        <ul id="macro_result"></ul>
+        <p class="macro_help">Press the = key to type a ≜.</p>
+        
+        <div id="macro_error">
+            ▼
+            <span id="macro_errorMessage"></span>
+        </div>
 
         <script src="lambdalab.bundle.js"></script>
     </body>
