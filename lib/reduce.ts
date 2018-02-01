@@ -1,7 +1,7 @@
 /**
  * Beta-reduction for lambda-terms.
  */
-import { Expr, Abs, App, Var, Macro } from './ast';
+import { pretty, Expr, Abs, App, Var, Macro } from './ast';
 
 /**
  * Check whether a lambda-term is a value.
@@ -103,7 +103,7 @@ export function reduce_cbv(e: Expr): Expr | null {
   }
 
   if (e.e1.kind == "macro") {
-    return new App(e.e1.abs, e.e2);
+    return new App(e.e1.body, e.e2);
   }
 
   return null;
@@ -130,7 +130,7 @@ export function reduce_cbn(e: Expr): Expr | null {
   }
 
   if (e.e1.kind == "macro") {
-    return new App(e.e1.abs, e.e2);
+    return new App(e.e1.body, e.e2);
   }
 
   return null;
@@ -139,11 +139,6 @@ export function reduce_cbn(e: Expr): Expr | null {
 /**
  * Perform a single normal order beta-reduction on the expression. If the
  * expression cannot take a step, return null instead. 
- * 
- * TODO: This implementation still treats macros like special constructs 
- * in that it does not expand them until they need to be applied. This 
- * doesn't pose a problem as long as all macros are in normal form, but
- * is this something we want to enforce?
  */
 export function reduce_full(e: Expr): Expr | null {
   // Normal order reduces under lambdas
@@ -171,7 +166,7 @@ export function reduce_full(e: Expr): Expr | null {
     }
 
     if (e.e1.kind == "macro") {
-      return new App(e.e1.abs, e.e2);
+      return new App(e.e1.body, e.e2);
     }
 
     // This ensures we eventually get to all redexes
@@ -182,4 +177,27 @@ export function reduce_full(e: Expr): Expr | null {
   }
 
   return null;
+}
+
+export function run(expr : Expr | null, timeout : number, 
+  reduce : (e: Expr) => Expr | null) : string[] {
+    
+  let steps: string[] = [];
+
+  if (!expr) {
+    return steps;
+  }
+
+  for (let i = 0; i < timeout; ++i) {
+    steps.push(pretty(expr));
+
+    // Take a step, if possible.
+    let next_expr = reduce(expr);
+    if (!next_expr) {
+      break;
+    }
+    expr = next_expr;
+  }
+
+  return steps;
 }

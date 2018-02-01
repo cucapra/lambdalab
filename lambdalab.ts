@@ -3,12 +3,12 @@
  */
 import { parse, ParseError, Scanner, add_macro } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro } from './lib/ast';
-import { reduce_cbv, reduce_cbn, reduce_full } from './lib/reduce';
+import { run, reduce_cbv, reduce_cbn, reduce_full } from './lib/reduce';
 
 /**
  * How many reduction steps to execute before timing out?
  */
-const TIMEOUT = 32;
+export const TIMEOUT = 100;
 
 /**
  * Insert text into the DOM at the current selection caret.
@@ -36,11 +36,10 @@ function insertText(text: string) {
  * Execute a lambda-calculus expression in a string. Return a new set of steps
  * to display or a parse error.
  */
-function runCode(scanner: Scanner, 
-          reduce : (e: Expr) => Var | App | Abs | Macro | null): string[] | ParseError {
+function runCode(scanner: Scanner, strategy : string): string[] | ParseError {
   let expr;
   try {
-    expr = parse(scanner);
+    expr = parse(scanner, strategy);
   } catch (e) {
     if (e instanceof ParseError) {
       return e;
@@ -49,24 +48,14 @@ function runCode(scanner: Scanner,
     }
   }
 
-  let steps: string[] = [];
+  // Determine the selected reduction strategy
+  let reduce = reduce_cbv;
+  if (strategy === "cbn")
+    reduce = reduce_cbn;
+  if (strategy === "full")
+    reduce = reduce_full;
 
-  if (!expr) {
-    return steps;
-  }
-
-  for (let i = 0; i < TIMEOUT; ++i) {
-    steps.push(pretty(expr));
-
-    // Take a step, if possible.
-    let next_expr = reduce(expr);
-    if (!next_expr) {
-      break;
-    }
-    expr = next_expr;
-  }
-
-  return steps;
+  return run(expr, TIMEOUT, reduce);
 }
 
 /**
@@ -192,20 +181,13 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
 
     scanner.set_string(code);
 
-    let strategy;
+    let strategy = "";
     for (var i = 0; i < strategies.length; i++) {
       if (strategies[i].checked) 
         strategy = strategies[i].value;
     }
 
-    // Determine the selected reduction strategy
-    let reduce = reduce_cbv;
-    if (strategy === "cbn")
-      reduce = reduce_cbn;
-    if (strategy === "full")
-      reduce = reduce_full;
-
-    let result = runCode(scanner, reduce);
+    let result = runCode(scanner, strategy);
     if (result instanceof ParseError) {
       showError(programBox, errorBox, result);
     } else {
@@ -265,14 +247,17 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
     }
 
     scanner.set_string(code);
-    let result = add_macro(scanner);
-
-    if (result instanceof ParseError) {
-      showError(macroBox, errorBox, result);
-    } else {
+    try {
+      let result = add_macro(scanner);
       clearError(errorBox);
-      for (let i = 0; i < helpText.length; ++i) {
-        hide(helpText[i] as HTMLElement);
+      showResult(result, resultList, helpText);
+    }
+    catch (e)  {
+      if (e instanceof ParseError) {
+        showError(macroBox, errorBox, e);
+      }
+      else {
+        throw(e);
       }
     }
   }

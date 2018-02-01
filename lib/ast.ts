@@ -41,7 +41,7 @@ export class Abs {
 }
 
 /**
- * The macro syntax form. Macros must be closed values
+ * The macro syntax form. Macros must be closed 
  * TODO: currently this does not enforce that macros are closed, so defining a macro with 
  * free variables can still result in variable capture
  */
@@ -49,7 +49,7 @@ export class Macro {
   kind: "macro";
   constructor(
     public readonly name: string,
-    public readonly abs: Abs
+    public readonly body: Expr
   ) {
     this.kind = "macro";
   };

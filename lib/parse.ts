@@ -1,7 +1,9 @@
 /**
  * A very simple recursive-descent parser for the plain lambda-calculus.
  */
-import { Expr, Abs, App, Var, Macro } from './ast';
+import { pretty, Expr, Abs, App, Var, Macro } from './ast';
+import { reduce_cbv, reduce_cbn, reduce_full } from './reduce';
+import { TIMEOUT } from '../lambdalab';
 import { skip } from 'tape';
 
 /**
@@ -14,12 +16,20 @@ export class ParseError {
   constructor(public msg: string, public pos: number) {}
 }
 
+/** 
+ * A definition for macros that includes values for each evaluation strategy
+ */
+export class MacroDefinition {
+  constructor(public name: string, public cbv_val : Expr | null,
+    public cbn_val :  Expr | null, public full_val :  Expr | null,
+    public unreduced : Expr) {}
+}
 /**
  * A simple tokenization helper that advances an offset in a string.
  */
 export class Scanner {
   public offset: number;
-  public macro_lookup : {[name : string] : Abs}; 
+  public macro_lookup : {[name : string] : MacroDefinition}; 
   public str : string;
 
   constructor() {
@@ -94,13 +104,11 @@ function parse_macro_name(s: Scanner): string | null {
  * Parse a sequence of terms separated by whitespace: in other words,
  * a nested hierarchy of applications.
  */
-function parse_expr(s: Scanner): Expr {
-  console.log(s.macro_lookup);
-
+function parse_expr(s: Scanner, eval_strat : string): Expr {
   skip_whitespace(s);
   let out_term = null;
   while (true) {
-    let term = parse_term(s);
+    let term = parse_term(s, eval_strat);
 
     // Could not parse a term here.
     if (!term) {
@@ -126,7 +134,7 @@ function parse_expr(s: Scanner): Expr {
  * Parse a non-application expression: a variable or an abstraction, or a
  * parenthesized expression.
  */
-function parse_term(s: Scanner): Expr | null {
+function parse_term(s: Scanner, eval_strat : string): Expr | null {
   // Try a variable occurrence.
   let vbl = parse_var(s);
   if (vbl) {
@@ -134,20 +142,20 @@ function parse_term(s: Scanner): Expr | null {
   }
 
   // Try a macro.
-  let mac = parse_macro(s);
+  let mac = parse_macro(s, eval_strat);
   if (mac) {
     return mac;
   }
 
   // Try an abstraction.
-  let abs = parse_abs(s);
+  let abs = parse_abs(s, eval_strat);
   if (abs) {
     return abs;
   }
 
   // Try parentheses.
   if (s.scan(/\(/)) {
-    let expr = parse_expr(s);
+    let expr = parse_expr(s, eval_strat);
     if (s.scan(/\)/)) {
       return expr;
     } else {
@@ -174,15 +182,35 @@ function parse_var(s: Scanner): Expr | null {
 /**
  * Parse a macro occurrence.
  */
-function parse_macro(s: Scanner): Expr | null {
+function parse_macro(s: Scanner, eval_strat : string): Expr | null {
   let name = parse_macro_name(s);
   if (name) {
-    // TODO: obtain the relevant abstraction from the macro lookup table
-    let abs = s.macro_lookup[name];
-    if (!abs) {
-      throw s.error("Undefined macro name")
+    let mac = s.macro_lookup[name];
+    if (!mac) {
+      throw s.error("Macro undefined");
     }
-    return new Macro(name, abs);
+
+    // First try the full-beta-reduction value, since this works in all evaluation strategies,
+    // as it is a normal form. 
+    let expr : Expr | null = mac.full_val;
+    if (!expr) {
+      // If there is no normal form, check to see if there is a value in the current evaluation
+      // strategy
+      if (eval_strat === "cbv") {
+        expr = mac.cbv_val;
+      } else if (eval_strat === "cbn")  {
+        expr = mac.cbn_val;
+      }
+      // If there is no value, or we are using full beta reduction, attempt to use the 
+      // unreduced form
+      else {
+        expr = mac.unreduced;
+      }
+      if (!expr) {
+        expr = mac.unreduced;
+      }
+    }
+    return new Macro(name, expr);
   } else {
     return null;
   }
@@ -191,7 +219,7 @@ function parse_macro(s: Scanner): Expr | null {
 /**
  * Parse a lambda-abstraction.
  */
-function parse_abs(s: Scanner): Expr | null {
+function parse_abs(s: Scanner, eval_strat : string): Expr | null {
   // Lambda.
   if (!s.scan(/\\|λ/)) {
     return null;
@@ -212,7 +240,7 @@ function parse_abs(s: Scanner): Expr | null {
   skip_whitespace(s);
 
   // Body.
-  let body = parse_expr(s);
+  let body = parse_expr(s, eval_strat);
   return new Abs(name, body);
 }
 
@@ -220,69 +248,129 @@ function parse_abs(s: Scanner): Expr | null {
  * Initialize the scanner to contain a number of pre-defined macros that will probably
  * be nice to have. 
  * 
- * // TODO: It would be nicer to have this in a config file at some point  
- * // TODO: There is currently no way to allow users to expand this list of macros
+ * TODO: Not all of these are in normal form
  */
 
 function init_macros(s : Scanner) : void {
+  // ID := λx.x
+  let id = new Abs("x", new Var("x"));
+  s.macro_lookup["ID"] = new MacroDefinition("ID", null, null, id, id); 
+
   // SUCC := λn. λf. λx. f (n f x)
-  s.macro_lookup["SUCC"] = new Abs("n", new Abs("f", new Abs("x", new App(new Var("f"),  
-                            new App(new App(new Var("n"), new Var("f")), new Var("x")))))); 
+  let succ = new Abs("n", new Abs("f", new Abs("x", new App(new Var("f"),  
+              new App(new App(new Var("n"), new Var("f")), new Var("x"))))));
+  s.macro_lookup["SUCC"] = new MacroDefinition("SUCC", null, null, succ, succ); 
   // ZERO := λf. λx. x
-  s.macro_lookup["ZERO"] = new Abs("f", new Abs("x", new Var("x")));
+  let zero = new Abs("f", new Abs("x", new Var("x")));
+  s.macro_lookup["ZERO"] = new MacroDefinition("ZERO", null, null, zero, zero);
   // ONE  := λf. λx. f x
-  s.macro_lookup["ONE"] = new Abs("f", new Abs("x", new App(new Var("f"), new Var("x"))));
+  let one = new Abs("f", new Abs("x", new App(new Var("f"), new Var("x"))));
+  s.macro_lookup["ONE"] = new MacroDefinition("ONE", null, null, one, one);
   // PLUS := λm. λn. n SUCC m
-  s.macro_lookup["PLUS"] = new Abs("m", new Abs("n", new App(new App(new Var("n"), 
-                             new Macro("SUCC", s.macro_lookup["SUCC"])), new Var("m"))));
+  let plus = new Abs("m", new Abs("n", new App(new App(new Var("n"), 
+              new Macro("SUCC", s.macro_lookup["SUCC"].full_val!)), 
+              new Var("m"))));
+  s.macro_lookup["PLUS"] = new MacroDefinition("PLUS", null, null, plus, plus);
+  // MULT := λm.λn. m (PLUS n) 0
+  let mult = new Abs("m", new Abs ("n", new App(new App(new Var("m"), 
+    new App(s.macro_lookup["PLUS"].full_val!, new Var("n"))), 
+    s.macro_lookup["ZERO"].full_val!)));
+  s.macro_lookup["MULT"] = new MacroDefinition("MULT", null, null, mult, mult);
+  // PRED := λn.λf.λx.((n (λg.λh.h (g f))) (λu.x)) (λu.u)
+  let pred = new Abs("n", new Abs("f", new Abs("x", 
+    new App(new App(new App(new Var("n"), new Abs("g", new Abs("h", 
+    new App(new Var("h"), new App(new Var("g"), new Var("f")))))), 
+    new Abs("u", new Var("x"))), s.macro_lookup["ID"].full_val!))));
+  s.macro_lookup["PRED"] = new MacroDefinition("PRED", null, null, pred, pred);
+  // SUB := λm.λn.n PRED m
+  let sub = new Abs("m", new Abs("n", new App(new App(new Var("n"), 
+    new Macro("PRED", s.macro_lookup["PRED"].full_val!)), new Var("m"))));
+  s.macro_lookup["SUB"] = new MacroDefinition("SUB", null, null, sub, sub);
 
   // TRUE := λa. λb. a
-  s.macro_lookup["TRUE"] = new Abs("a", new Abs("b", new Var("a")));
+  let tr = new Abs("a", new Abs("b", new Var("a")));
+  s.macro_lookup["TRUE"] = new MacroDefinition("TRUE", null, null, tr, tr);
   // FALSE := λa. λb. b
-  s.macro_lookup["FALSE"] = new Abs("a", new Abs("b", new Var("b")));
+  let fl = new Abs("a", new Abs("b", new Var("b")));
+  s.macro_lookup["FALSE"] = new MacroDefinition("FALSE", null, null, fl, fl);
+}
+
+function find_value(expr : Expr, reduce : (e: Expr) => Expr | null) 
+  : [Expr | null, string[]] {
+  
+    let steps: string[] = [];
+
+  if (!expr) {
+    return [null, steps];
+  }
+
+  for (let i = 0; i < TIMEOUT; ++i) {
+    steps.push(pretty(expr));
+    // Take a step, if possible.
+    let next_expr = reduce(expr);
+    if (!next_expr) {
+      return [expr, steps];
+    }
+    expr = next_expr;
+  }
+  // Timeout reached, no value found
+  return [null, steps];
 }
 
 /*
  * Parses a macro definition and adds a new macro to the interpreter session. Expects
- * definitions of form #define <MACRO> <EXPR> and will throw an error if this is not satisfied.
+ * definitions of form <MACRO> ≜ <EXPR> and will throw an error if this is not satisfied.
  * Returns the expression being created as a macro
  * 
  * TODO: This only accepts macros without arguments right now
  */
 
-export function add_macro(s: Scanner) : Expr | ParseError {
+export function add_macro(s: Scanner) : string[] {
   // Move scanner position to beginning of macro
   skip_whitespace(s);
 
   // Determine macro
   let macro_name = parse_macro_name(s);
   if(!macro_name) {
-    return s.error("Improperly formatted macro definition");
+    throw s.error("Improperly formatted macro definition");
   }
   skip_whitespace(s);
 
   let eq = s.scan(/≜/);
   if(!eq) {
-    return s.error("Improperly formatted macro definition");
+    throw s.error("Improperly formatted macro definition");
   }
   skip_whitespace(s);
 
-  // Parse macro and add it to scanner lookup
-  try {
-    let expr = parse_expr(s);
-    if (expr.kind !== "abs") {
-      return s.error("Macros must be values");
-    }
-    s.macro_lookup[macro_name] = expr;
-    return expr;
+  let inputStr = s.str.substring(s.str.indexOf("≜") + 1);
+
+  // Parse macro and attempt to evaluate it under full beta reduction
+  let full_expr = parse_expr(s, "full");
+
+  let fullSteps = find_value(full_expr, reduce_full);
+  if (fullSteps[0]) {
+    s.macro_lookup[macro_name] = 
+      new MacroDefinition(macro_name, null, null, fullSteps[0], full_expr);
+    return fullSteps[1];
   }
-  catch (e) {
-    if (e instanceof ParseError) {
-      return e;
-    } else {
-      throw(e);
-    }
+
+  // No normal form, so try to find the appropriate values under cbn and cbv
+  // Need to reset scanner string because it was consumed before
+  s.set_string(inputStr);
+  let cbn_expr = parse_expr(s, "cbn");
+  s.set_string(inputStr);
+  let cbv_expr = parse_expr(s, "cbv");
+  let cbnSteps = find_value(cbn_expr, reduce_cbn);
+  let cbvSteps = find_value(cbv_expr, reduce_cbv);
+  if (cbnSteps[0]) { // CBN will always find a value if CBV does
+    s.macro_lookup[macro_name] = 
+      new MacroDefinition(macro_name, cbvSteps[0], cbnSteps[0], null, full_expr);
+    return cbnSteps[1]; 
   }
+
+  // No value found in any evaluation strategy, so just store the literal input
+  s.macro_lookup[macro_name] = new MacroDefinition(macro_name, null, null, null, full_expr);
+  return fullSteps[1];
 }
 
 /**
@@ -290,8 +378,8 @@ export function add_macro(s: Scanner) : Expr | ParseError {
  *
  * May throw a `ParseError` when the expression is not a valid term.
  */
-export function parse(scanner : Scanner): Expr | null {
-  let expr = parse_expr(scanner);
+export function parse(scanner : Scanner, eval_strat : string): Expr | null {
+  let expr = parse_expr(scanner, eval_strat);
   if (scanner.offset < scanner.str.length) {
     throw scanner.error("unexpected token");
   }
