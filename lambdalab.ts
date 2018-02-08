@@ -3,7 +3,7 @@
  */
 import { parse, ParseError, Scanner, add_macro } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro } from './lib/ast';
-import { run, reduce_cbv, reduce_cbn, reduce_full, 
+import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal, 
          Strategy, strat_of_string } from './lib/reduce';
 
 /**
@@ -53,8 +53,10 @@ function runCode(scanner: Scanner, strategy : Strategy): string[] | ParseError {
   let reduce = reduce_cbv;
   if (strategy === Strategy.CBN)
     reduce = reduce_cbn;
-  if (strategy === Strategy.Full)
-    reduce = reduce_full;
+  if (strategy === Strategy.Normal)
+    reduce = reduce_normal;
+  if (strategy === Strategy.Appl)
+    reduce = reduce_appl;
 
   return run(expr, TIMEOUT, reduce);
 }

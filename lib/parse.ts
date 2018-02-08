@@ -2,7 +2,7 @@
  * A very simple recursive-descent parser for the plain lambda-calculus.
  */
 import { pretty, Expr, Abs, App, Var, Macro } from './ast';
-import { reduce_cbv, reduce_cbn, reduce_full, Strategy } from './reduce';
+import { reduce_cbv, reduce_cbn, reduce_appl, reduce_normal, Strategy } from './reduce';
 import { MacroDefinition } from './macro';
 import { TIMEOUT } from '../lambdalab';
 import { skip } from 'tape';
@@ -338,9 +338,10 @@ export function add_macro(s: Scanner) : string[] {
   let inputStr = s.str.substring(s.str.indexOf("≜") + 1);
 
   // Parse macro and attempt to evaluate it under full beta reduction
-  let full_expr = parse_expr(s, Strategy.Full);
+  let full_expr = parse_expr(s, Strategy.Normal);
 
-  let fullSteps = find_value(full_expr, reduce_full);
+  // Normal order will always find the normal form if it exists
+  let fullSteps = find_value(full_expr, reduce_normal);
   if (fullSteps[0]) {
     s.macro_lookup[macro_name] = 
       new MacroDefinition(macro_name, null, null, fullSteps[0], full_expr);

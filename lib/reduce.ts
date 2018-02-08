@@ -6,14 +6,16 @@ import { pretty, Expr, Abs, App, Var, Macro } from './ast';
 export enum Strategy {
   CBV = 1, 
   CBN = 2,
-  Full = 3
+  Normal = 3,
+  Appl = 4
 }
 
 export function strat_of_string(s : string) : Strategy | null {
   switch(s) {
     case "cbv" : return Strategy.CBV;
     case "cbn" : return Strategy.CBN;
-    case "full" : return Strategy.Full;
+    case "normal" : return Strategy.Normal;
+    case "appl" : return Strategy.Appl;
     default: return null;
   }
 }
@@ -164,10 +166,54 @@ export function reduce_cbn(e: Expr): Expr | null {
  * Perform a single normal order beta-reduction on the expression. If the
  * expression cannot take a step, return null instead. 
  */
-export function reduce_full(e: Expr): Expr | null {
+export function reduce_normal(e: Expr): Expr | null {
   // Normal order reduces under lambdas
   if (e.kind === "abs") {
-    let body = reduce_full(e.body);
+    let body = reduce_appl(e.body);
+    if (body)
+      return new Abs(e.vbl, body);
+  }
+
+  if (e.kind === "app") {
+    if (e.e1.kind === "app") {
+      let lhs = reduce_appl(e.e1);
+      if (lhs) {
+        return new App(lhs, e.e2);
+      }
+    }
+
+    if (e.e1.kind === "abs") {
+      return subst(e.e1.body, e.e2, e.e1.vbl);
+    }
+
+    if (e.e1.kind === "macro") {
+      return new App(e.e1.body, e.e2);
+    }
+
+    if (e.e2.kind === "macro") {
+      if(e.e2.body.kind === "app") {
+        return new App(e.e1, e.e2.body);
+      }
+    }
+
+    // This ensures we eventually get to all redexes
+    let rhs = reduce_appl(e.e2);
+    if (rhs) {
+      return new App(e.e1, rhs);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Perform a single applicative order beta-reduction on the expression. If the
+ * expression cannot take a step, return null instead. 
+ */
+export function reduce_appl(e: Expr): Expr | null {
+  // Applicative order reduces under lambdas
+  if (e.kind === "abs") {
+    let body = reduce_appl(e.body);
     if (body)
       return new Abs(e.vbl, body);
     return null;
@@ -177,13 +223,13 @@ export function reduce_full(e: Expr): Expr | null {
   // is nothing to reduce or subsitute on the left
   if (e.kind === "app") {
 
-    let lhs = reduce_full(e.e1);
+    let lhs = reduce_appl(e.e1);
     if (lhs) {
       return new App(lhs, e.e2);
     }
 
     if (e.e1.kind === "abs") {
-      let body = reduce_full(e.e1.body);
+      let body = reduce_appl(e.e1.body);
       if (body)
         return new App(new Abs(e.e1.vbl, body), e.e2);
       return subst(e.e1.body, e.e2, e.e1.vbl);
@@ -193,8 +239,14 @@ export function reduce_full(e: Expr): Expr | null {
       return new App(e.e1.body, e.e2);
     }
 
+    if (e.e2.kind === "macro") {
+      if(e.e2.body.kind === "app") {
+        return new App(e.e1, e.e2.body);
+      }
+    }
+
     // This ensures we eventually get to all redexes
-    let rhs = reduce_full(e.e2);
+    let rhs = reduce_appl(e.e2);
     if (rhs) {
       return new App(e.e1, rhs);
     }

@@ -65,9 +65,14 @@
             <label for = "cbn">Call-By-Name</label>
             <input type = "radio"
                    name = "evalStrat"
-                   id = "full"
-                   value = "full" />
-            <label for = "full">Full Normal Order</label>
+                   id = "normal"
+                   value = "normal" />
+            <label for = "normal">Full Normal Order</label>
+            <input type = "radio"
+                name = "evalStrat"
+                id = "appl"
+                value = "appl" />
+            <label for = "appl">Full Applicative Order</label>
         </form>
         
         <div id="macro" contenteditable="true">IF ≜ λb. λt. λf. b t f </div>
