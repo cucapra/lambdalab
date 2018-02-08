@@ -3,7 +3,8 @@
  */
 import { parse, ParseError, Scanner, add_macro } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro } from './lib/ast';
-import { run, reduce_cbv, reduce_cbn, reduce_full } from './lib/reduce';
+import { run, reduce_cbv, reduce_cbn, reduce_full, 
+         Strategy, strat_of_string } from './lib/reduce';
 
 /**
  * How many reduction steps to execute before timing out?
@@ -36,7 +37,7 @@ function insertText(text: string) {
  * Execute a lambda-calculus expression in a string. Return a new set of steps
  * to display or a parse error.
  */
-function runCode(scanner: Scanner, strategy : string): string[] | ParseError {
+function runCode(scanner: Scanner, strategy : Strategy): string[] | ParseError {
   let expr;
   try {
     expr = parse(scanner, strategy);
@@ -50,9 +51,9 @@ function runCode(scanner: Scanner, strategy : string): string[] | ParseError {
 
   // Determine the selected reduction strategy
   let reduce = reduce_cbv;
-  if (strategy === "cbn")
+  if (strategy === Strategy.CBN)
     reduce = reduce_cbn;
-  if (strategy === "full")
+  if (strategy === Strategy.Full)
     reduce = reduce_full;
 
   return run(expr, TIMEOUT, reduce);
@@ -181,11 +182,13 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
 
     scanner.set_string(code);
 
-    let strategy = "";
+    let strategy = null;
     for (var i = 0; i < strategies.length; i++) {
-      if (strategies[i].checked) 
-        strategy = strategies[i].value;
+      if (strategies[i].checked) {
+        strategy = strat_of_string(strategies[i].value);
+      }
     }
+    if(!strategy) return;
 
     let result = runCode(scanner, strategy);
     if (result instanceof ParseError) {

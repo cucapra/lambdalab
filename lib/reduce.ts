@@ -3,11 +3,27 @@
  */
 import { pretty, Expr, Abs, App, Var, Macro } from './ast';
 
+export enum Strategy {
+  CBV = 1, 
+  CBN = 2,
+  Full = 3
+}
+
+export function strat_of_string(s : string) : Strategy | null {
+  switch(s) {
+    case "cbv" : return Strategy.CBV;
+    case "cbn" : return Strategy.CBN;
+    case "full" : return Strategy.Full;
+    default: return null;
+  }
+}
+
 /**
- * Check whether a lambda-term is a value.
+ * Check whether a lambda-term is a value. Only works for CBV/CBN and
+ * does not account for macros. 
  */
 function is_value(e: Expr): boolean {
-  return e.kind === "abs" || e.kind === "macro";
+  return e.kind === "abs";
 }
 
 /**
@@ -97,13 +113,21 @@ export function reduce_cbv(e: Expr): Expr | null {
     return new App(e.e1, rhs);
   }
 
+  if (e.e1.kind === "macro") {
+    return new App(e.e1.body, e.e2);
+  }
+
+  // Expand macros on the right hand side if they are applications (expressions that can 
+  // step), as this indicates that they need to be expanded for correct CBV evaluation
+  if (e.e2.kind === "macro") {
+    if(e.e2.body.kind === "app") {
+      return new App(e.e1, e.e2.body);
+    }
+  }
+
   // Let's do the time warp again.
   if (e.e1.kind === "abs") {
     return subst(e.e1.body, e.e2, e.e1.vbl);
-  }
-
-  if (e.e1.kind == "macro") {
-    return new App(e.e1.body, e.e2);
   }
 
   return null;
@@ -129,7 +153,7 @@ export function reduce_cbn(e: Expr): Expr | null {
     return subst(e.e1.body, e.e2, e.e1.vbl);
   }
 
-  if (e.e1.kind == "macro") {
+  if (e.e1.kind === "macro") {
     return new App(e.e1.body, e.e2);
   }
 
@@ -165,7 +189,7 @@ export function reduce_full(e: Expr): Expr | null {
       return subst(e.e1.body, e.e2, e.e1.vbl);
     }
 
-    if (e.e1.kind == "macro") {
+    if (e.e1.kind === "macro") {
       return new App(e.e1.body, e.e2);
     }
 

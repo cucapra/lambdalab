@@ -2,7 +2,8 @@
  * A very simple recursive-descent parser for the plain lambda-calculus.
  */
 import { pretty, Expr, Abs, App, Var, Macro } from './ast';
-import { reduce_cbv, reduce_cbn, reduce_full } from './reduce';
+import { reduce_cbv, reduce_cbn, reduce_full, Strategy } from './reduce';
+import { MacroDefinition } from './macro';
 import { TIMEOUT } from '../lambdalab';
 import { skip } from 'tape';
 
@@ -16,14 +17,6 @@ export class ParseError {
   constructor(public msg: string, public pos: number) {}
 }
 
-/** 
- * A definition for macros that includes values for each evaluation strategy
- */
-export class MacroDefinition {
-  constructor(public name: string, public cbv_val : Expr | null,
-    public cbn_val :  Expr | null, public full_val :  Expr | null,
-    public unreduced : Expr) {}
-}
 /**
  * A simple tokenization helper that advances an offset in a string.
  */
@@ -104,7 +97,7 @@ function parse_macro_name(s: Scanner): string | null {
  * Parse a sequence of terms separated by whitespace: in other words,
  * a nested hierarchy of applications.
  */
-function parse_expr(s: Scanner, eval_strat : string): Expr {
+function parse_expr(s: Scanner, eval_strat : Strategy): Expr {
   skip_whitespace(s);
   let out_term = null;
   while (true) {
@@ -134,7 +127,7 @@ function parse_expr(s: Scanner, eval_strat : string): Expr {
  * Parse a non-application expression: a variable or an abstraction, or a
  * parenthesized expression.
  */
-function parse_term(s: Scanner, eval_strat : string): Expr | null {
+function parse_term(s: Scanner, eval_strat : Strategy): Expr | null {
   // Try a variable occurrence.
   let vbl = parse_var(s);
   if (vbl) {
@@ -182,7 +175,7 @@ function parse_var(s: Scanner): Expr | null {
 /**
  * Parse a macro occurrence.
  */
-function parse_macro(s: Scanner, eval_strat : string): Expr | null {
+function parse_macro(s: Scanner, eval_strat : Strategy): Expr | null {
   let name = parse_macro_name(s);
   if (name) {
     let mac = s.macro_lookup[name];
@@ -196,9 +189,9 @@ function parse_macro(s: Scanner, eval_strat : string): Expr | null {
     if (!expr) {
       // If there is no normal form, check to see if there is a value in the current evaluation
       // strategy
-      if (eval_strat === "cbv") {
+      if (eval_strat === Strategy.CBV) {
         expr = mac.cbv_val;
-      } else if (eval_strat === "cbn")  {
+      } else if (eval_strat === Strategy.CBN)  {
         expr = mac.cbn_val;
       }
       // If there is no value, or we are using full beta reduction, attempt to use the 
@@ -219,7 +212,7 @@ function parse_macro(s: Scanner, eval_strat : string): Expr | null {
 /**
  * Parse a lambda-abstraction.
  */
-function parse_abs(s: Scanner, eval_strat : string): Expr | null {
+function parse_abs(s: Scanner, eval_strat : Strategy): Expr | null {
   // Lambda.
   if (!s.scan(/\\|λ/)) {
     return null;
@@ -345,7 +338,7 @@ export function add_macro(s: Scanner) : string[] {
   let inputStr = s.str.substring(s.str.indexOf("≜") + 1);
 
   // Parse macro and attempt to evaluate it under full beta reduction
-  let full_expr = parse_expr(s, "full");
+  let full_expr = parse_expr(s, Strategy.Full);
 
   let fullSteps = find_value(full_expr, reduce_full);
   if (fullSteps[0]) {
@@ -357,9 +350,9 @@ export function add_macro(s: Scanner) : string[] {
   // No normal form, so try to find the appropriate values under cbn and cbv
   // Need to reset scanner string because it was consumed before
   s.set_string(inputStr);
-  let cbn_expr = parse_expr(s, "cbn");
+  let cbn_expr = parse_expr(s, Strategy.CBN);
   s.set_string(inputStr);
-  let cbv_expr = parse_expr(s, "cbv");
+  let cbv_expr = parse_expr(s, Strategy.CBV);
   let cbnSteps = find_value(cbn_expr, reduce_cbn);
   let cbvSteps = find_value(cbv_expr, reduce_cbv);
   if (cbnSteps[0]) { // CBN will always find a value if CBV does
@@ -378,8 +371,8 @@ export function add_macro(s: Scanner) : string[] {
  *
  * May throw a `ParseError` when the expression is not a valid term.
  */
-export function parse(scanner : Scanner, eval_strat : string): Expr | null {
-  let expr = parse_expr(scanner, eval_strat);
+export function parse(scanner : Scanner, strat : Strategy): Expr | null {
+  let expr = parse_expr(scanner, strat);
   if (scanner.offset < scanner.str.length) {
     throw scanner.error("unexpected token");
   }
