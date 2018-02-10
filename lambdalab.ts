@@ -315,7 +315,8 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
 }
 
 function toggleVisibility(el: HTMLElement) {
-  if (el.style.visibility === "hidden") {
+  let style = window.getComputedStyle(el);
+  if (style.visibility === "hidden") {
     el.style.visibility = "visible";
   } else {
     el.style.visibility = "hidden";
