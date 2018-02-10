@@ -324,7 +324,13 @@ function toggleVisibility(el: HTMLElement) {
 
 // Event handler for document setup.
 document.addEventListener("DOMContentLoaded", () => {
+  // Select the sharing link (and copy it to the clipboard, when supported) on
+  // click.
   let shareLink = document.getElementById("share_link")! as HTMLInputElement;
+  shareLink.addEventListener("click", (event) => {
+    shareLink.setSelectionRange(0, shareLink.value.length);
+    document.execCommand('copy');
+  });
 
   let macroBox = document.getElementById("macro")!;
   let macroList = document.getElementById("macro_result")!;
