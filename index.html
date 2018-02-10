@@ -49,6 +49,15 @@
             #options p {
                 margin: 0.5rem 0;
             }
+            #show_options {
+                position: absolute;
+                right: 0;
+                top: 0;
+                border: none;
+                background: transparent;
+                padding: 0.5rem 1rem 1rem 1rem;
+                font-size: 200%;
+            }
         </style>
     </head>
     <body>
@@ -98,6 +107,7 @@
                 </p>
             </form>
         </div>
+        <button id="show_options">⚙︎</button>
 
         <div id="macro" contenteditable="true">IF ≜ λb. λt. λf. b t f </div>
         <ul id="macro_result"></ul>

@@ -3,7 +3,7 @@
  */
 import { parse, ParseError, Scanner, add_macro } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro } from './lib/ast';
-import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal, 
+import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal,
          Strategy, strat_of_string } from './lib/reduce';
 
 /**
@@ -125,7 +125,7 @@ function showError(programBox: HTMLElement, errorBox: HTMLElement,
                    error: ParseError) {
   console.log(`parse error in "${programBox.textContent!}" @ ` +
               `${error.pos}: ${error.msg}`);
-  
+
   // Character position to display. If it's past the end of the
   // string (e.g., when a balanced paren is missing), move it
   // back to the last character of the input code.
@@ -296,6 +296,14 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
   return scanner;
 }
 
+function toggleVisibility(el: HTMLElement) {
+  if (el.style.visibility === "hidden") {
+    el.style.visibility = "visible";
+  } else {
+    el.style.visibility = "hidden";
+  }
+}
+
 // Event handler for document setup.
 document.addEventListener("DOMContentLoaded", () => {
   let macroBox = document.getElementById("macro")!;
@@ -312,4 +320,10 @@ document.addEventListener("DOMContentLoaded", () => {
   programSetUp(programBox, programResultList, strategies, scanner,
     programHelpText, programErrorBox);
 
+  // Show & hide the options box.
+  let optionsBox = document.getElementById("options")!;
+  let optionsButton = document.getElementById("show_options")!;
+  optionsButton.addEventListener("click", (event) => {
+    toggleVisibility(optionsBox);
+  });
 });
