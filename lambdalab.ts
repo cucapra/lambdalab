@@ -166,15 +166,29 @@ function clearError(errorBox: HTMLElement) {
 }
 
 /**
+ * Update the sharing link with the current code.
+ */
+function updateLink(code: string, strategy: number,
+                    shareLink: HTMLInputElement) {
+  let state = { code, strategy };
+  let state_str = encodeURIComponent(JSON.stringify(state));
+  let base_url = window.location.href.replace(window.location.hash, "");
+  let share_url = base_url + '#' + state_str;
+  console.log(share_url);
+  shareLink.value = share_url;
+}
+
+/**
  * Set up the program event handlers. This is called when the DOM is first loaded.
  */
 function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
-               strategies : NodeListOf<HTMLInputElement>, scanner : Scanner,
-               helpText: HTMLCollectionOf<Element>, errorBox: HTMLElement) {
+               strategies: NodeListOf<HTMLInputElement>, scanner: Scanner,
+               helpText: HTMLCollectionOf<Element>, errorBox: HTMLElement,
+               shareLink: HTMLInputElement) {
 
   // Run the code currently entered into the box.
   function execute() {
-    // Parse and execute.
+    // Get the code to execute.
     let code = programBox.textContent!;
     if (!code.trim()) {
       // No code: do nothing.
@@ -182,16 +196,20 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
       return;
     }
 
-    scanner.set_string(code);
-
+    // Determine the evaluation strategy.
     let strategy = null;
-    for (var i = 0; i < strategies.length; i++) {
+    for (let i = 0; i < strategies.length; i++) {
       if (strategies[i].checked) {
         strategy = strat_of_string(strategies[i].value);
       }
     }
     if(!strategy) return;
 
+    // Update the sharing link.
+    updateLink(code, strategy, shareLink);
+
+    // Parse and execute.
+    scanner.set_string(code);
     let result = runCode(scanner, strategy);
     if (result instanceof ParseError) {
       showError(programBox, errorBox, result);
@@ -306,6 +324,8 @@ function toggleVisibility(el: HTMLElement) {
 
 // Event handler for document setup.
 document.addEventListener("DOMContentLoaded", () => {
+  let shareLink = document.getElementById("share_link")! as HTMLInputElement;
+
   let macroBox = document.getElementById("macro")!;
   let macroList = document.getElementById("macro_result")!;
   let macroText = document.getElementsByClassName("macro_help");
@@ -318,7 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let programHelpText = document.getElementsByClassName("program_help");
   let programErrorBox = document.getElementById("program_error")!;
   programSetUp(programBox, programResultList, strategies, scanner,
-    programHelpText, programErrorBox);
+    programHelpText, programErrorBox, shareLink);
 
   // Show & hide the options box.
   let optionsBox = document.getElementById("options")!;
