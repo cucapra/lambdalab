@@ -180,38 +180,50 @@ function updateLink(code: string, strategy: number,
 
 /**
  * Load the current state from a URL hash, if it contains share link data.
+ *
+ * Return a flag indicating whether code was loaded from the state.
  */
 function handleHash(hash: string, programBox: HTMLElement,
-                    strategies: NodeListOf<HTMLInputElement>) {
+                    strategies: NodeListOf<HTMLInputElement>): boolean {
   let json = decodeURIComponent(hash.substr(1));
-  if (json) {
-    // Parse the JSON.
-    let state;
-    try {
-      state = JSON.parse(json);
-    } catch (e) {
-      return;
-    }
+  if (!json) {
+    return false;
+  }
 
-    // Load the code.
-    if (state.code) {
-      programBox.textContent = state.code;
-    }
+  // Parse the JSON.
+  let state;
+  try {
+    state = JSON.parse(json);
+  } catch (e) {
+    return false;
+  }
 
-    // Load the evaluation strategy.
-    if (state.strategy) {
-      for (let i = 0; i < strategies.length; i++) {
-        if (strat_of_string(strategies[i].value) === state.strategy) {
-          strategies[i].checked = true;
-          break;
-        }
+  // Load the code.
+  let foundCode = false;
+  if (state.code) {
+    programBox.textContent = state.code;
+    foundCode = true;
+  }
+
+  // Load the evaluation strategy.
+  if (state.strategy) {
+    for (let i = 0; i < strategies.length; i++) {
+      if (strat_of_string(strategies[i].value) === state.strategy) {
+        strategies[i].checked = true;
+        break;
       }
     }
   }
+
+  return foundCode;
 }
 
 /**
- * Set up the program event handlers. This is called when the DOM is first loaded.
+ * Set up the program event handlers. This is called when the DOM is first
+ * loaded.
+ *
+ * Return a function that runs the currently-entered program, as if the user
+ * had just entered it manually.
  */
 function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
                strategies: NodeListOf<HTMLInputElement>, scanner: Scanner,
@@ -281,6 +293,8 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
       execute();
     });
   }
+
+  return execute;
 }
 
 /**
@@ -376,7 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let programResultList = document.getElementById("program_result")!;
   let programHelpText = document.getElementsByClassName("program_help");
   let programErrorBox = document.getElementById("program_error")!;
-  programSetUp(programBox, programResultList, strategies, scanner,
+  let execute = programSetUp(programBox, programResultList, strategies, scanner,
     programHelpText, programErrorBox, shareLink);
 
   // Show & hide the options box.
@@ -387,5 +401,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Load the state from a pasted sharing link, if any.
-  handleHash(window.location.hash, programBox, strategies);
+  if (handleHash(window.location.hash, programBox, strategies)) {
+    execute();
+  }
 });
