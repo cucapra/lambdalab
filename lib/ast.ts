@@ -41,9 +41,7 @@ export class Abs {
 }
 
 /**
- * The macro syntax form. Macros must be closed 
- * TODO: currently this does not enforce that macros are closed, so defining a macro with 
- * free variables can still result in variable capture
+ * The macro syntax form. Macros must be closed
  */
 export class Macro {
   kind: "macro";

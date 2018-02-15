@@ -3,7 +3,7 @@
  */
 import { pretty, Expr, Abs, App, Var, Macro } from './ast';
 import { reduce_cbv, reduce_cbn, reduce_appl, reduce_normal, Strategy } from './reduce';
-import { MacroDefinition } from './macro';
+import { MacroDefinition, init_macros } from './macro';
 import { TIMEOUT } from '../lambdalab';
 import { skip } from 'tape';
 
@@ -237,57 +237,6 @@ function parse_abs(s: Scanner, eval_strat : Strategy): Expr | null {
   return new Abs(name, body);
 }
 
-/**
- * Initialize the scanner to contain a number of pre-defined macros that will probably
- * be nice to have. 
- * 
- * TODO: Not all of these are in normal form
- */
-
-function init_macros(s : Scanner) : void {
-  // ID := λx.x
-  let id = new Abs("x", new Var("x"));
-  s.macro_lookup["ID"] = new MacroDefinition("ID", null, null, id, id); 
-
-  // SUCC := λn. λf. λx. f (n f x)
-  let succ = new Abs("n", new Abs("f", new Abs("x", new App(new Var("f"),  
-              new App(new App(new Var("n"), new Var("f")), new Var("x"))))));
-  s.macro_lookup["SUCC"] = new MacroDefinition("SUCC", null, null, succ, succ); 
-  // ZERO := λf. λx. x
-  let zero = new Abs("f", new Abs("x", new Var("x")));
-  s.macro_lookup["ZERO"] = new MacroDefinition("ZERO", null, null, zero, zero);
-  // ONE  := λf. λx. f x
-  let one = new Abs("f", new Abs("x", new App(new Var("f"), new Var("x"))));
-  s.macro_lookup["ONE"] = new MacroDefinition("ONE", null, null, one, one);
-  // PLUS := λm. λn. n SUCC m
-  let plus = new Abs("m", new Abs("n", new App(new App(new Var("n"), 
-              new Macro("SUCC", s.macro_lookup["SUCC"].full_val!)), 
-              new Var("m"))));
-  s.macro_lookup["PLUS"] = new MacroDefinition("PLUS", null, null, plus, plus);
-  // MULT := λm.λn. m (PLUS n) 0
-  let mult = new Abs("m", new Abs ("n", new App(new App(new Var("m"), 
-    new App(s.macro_lookup["PLUS"].full_val!, new Var("n"))), 
-    s.macro_lookup["ZERO"].full_val!)));
-  s.macro_lookup["MULT"] = new MacroDefinition("MULT", null, null, mult, mult);
-  // PRED := λn.λf.λx.((n (λg.λh.h (g f))) (λu.x)) (λu.u)
-  let pred = new Abs("n", new Abs("f", new Abs("x", 
-    new App(new App(new App(new Var("n"), new Abs("g", new Abs("h", 
-    new App(new Var("h"), new App(new Var("g"), new Var("f")))))), 
-    new Abs("u", new Var("x"))), s.macro_lookup["ID"].full_val!))));
-  s.macro_lookup["PRED"] = new MacroDefinition("PRED", null, null, pred, pred);
-  // SUB := λm.λn.n PRED m
-  let sub = new Abs("m", new Abs("n", new App(new App(new Var("n"), 
-    new Macro("PRED", s.macro_lookup["PRED"].full_val!)), new Var("m"))));
-  s.macro_lookup["SUB"] = new MacroDefinition("SUB", null, null, sub, sub);
-
-  // TRUE := λa. λb. a
-  let tr = new Abs("a", new Abs("b", new Var("a")));
-  s.macro_lookup["TRUE"] = new MacroDefinition("TRUE", null, null, tr, tr);
-  // FALSE := λa. λb. b
-  let fl = new Abs("a", new Abs("b", new Var("b")));
-  s.macro_lookup["FALSE"] = new MacroDefinition("FALSE", null, null, fl, fl);
-}
-
 function find_value(expr : Expr, reduce : (e: Expr) => Expr | null) 
   : [Expr | null, string[]] {
   
@@ -310,6 +259,35 @@ function find_value(expr : Expr, reduce : (e: Expr) => Expr | null)
   return [null, steps];
 }
 
+/*
+ * Checks if an expression is closed (contains no free variables) in the given context
+ */
+
+function is_closed_in_context(e : Expr, context : string[] ) : boolean {
+  if (e.kind == "var") {
+    return context.indexOf(e.name) >= 0;
+  }
+  else if (e.kind == "app") {
+    return is_closed_in_context(e.e1, context) && is_closed_in_context (e.e2, context);
+  }
+  else if (e.kind == "abs") {
+    let newContext = context.slice();
+    newContext.push(e.vbl);
+    return is_closed_in_context(e.body, newContext);
+  }
+  else { // e is a macro. We enforce at definition that macros be closed, so 
+         // we need not check within them here
+    return true;
+  }
+}
+
+/*
+ * Checks if an expression is closed (contains no free variables) in the empty context
+ */
+
+function is_closed(e : Expr) : boolean {
+  return is_closed_in_context(e, []);
+}
 /*
  * Parses a macro definition and adds a new macro to the interpreter session. Expects
  * definitions of form <MACRO> ≜ <EXPR> and will throw an error if this is not satisfied.
@@ -339,6 +317,11 @@ export function add_macro(s: Scanner) : string[] {
 
   // Parse macro and attempt to evaluate it under full beta reduction
   let full_expr = parse_expr(s, Strategy.Normal);
+
+  // Macros must be closed values
+  if (!is_closed(full_expr)) {
+    throw s.error("Macros must be closed terms");
+  }
 
   // Normal order will always find the normal form if it exists
   let fullSteps = find_value(full_expr, reduce_normal);
