@@ -255,16 +255,22 @@ export function reduce_appl(e: Expr): Expr | null {
   return null;
 }
 
+/**
+ * Return the result of running the expr with a given reduction strategy. 
+ * Also returns the final expression for resugaring purposes.
+ */
+
+
 export function run(expr : Expr | null, timeout : number, 
-  reduce : (e: Expr) => Expr | null) : string[] {
+  reduce : (e: Expr) => Expr | null) : [string[], Expr | null] {
     
   let steps: string[] = [];
 
   if (!expr) {
-    return steps;
+    return [steps, null];
   }
 
-  for (let i = 0; i < timeout; ++i) {
+  for (let i = 0; i <= timeout; ++i) {
     steps.push(pretty(expr));
 
     // Take a step, if possible.
@@ -273,7 +279,8 @@ export function run(expr : Expr | null, timeout : number,
       break;
     }
     expr = next_expr;
+    if (i === timeout) return [steps, null]; // Timed out
   }
 
-  return steps;
+  return [steps, expr];
 }

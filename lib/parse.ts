@@ -285,7 +285,7 @@ function is_closed_in_context(e : Expr, context : string[] ) : boolean {
  * Checks if an expression is closed (contains no free variables) in the empty context
  */
 
-function is_closed(e : Expr) : boolean {
+export function is_closed(e : Expr) : boolean {
   return is_closed_in_context(e, []);
 }
 /*

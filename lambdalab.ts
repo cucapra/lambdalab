@@ -5,6 +5,7 @@ import { parse, ParseError, Scanner, add_macro } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro } from './lib/ast';
 import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal,
          Strategy, strat_of_string } from './lib/reduce';
+import { resugar } from './lib/macro';
 
 /**
  * How many reduction steps to execute before timing out?
@@ -58,7 +59,14 @@ function runCode(scanner: Scanner, strategy : Strategy): string[] | ParseError {
   if (strategy === Strategy.Appl)
     reduce = reduce_appl;
 
-  return run(expr, TIMEOUT, reduce);
+  let [steps, e] = run(expr, TIMEOUT, reduce);
+  if (e) { // Timeout did not occur 
+    let [new_e, sugared] = resugar(e, scanner.macro_lookup, strategy);
+    if (sugared) {
+      steps.push(pretty(new_e));
+    }
+  }
+  return steps;
 }
 
 /**
