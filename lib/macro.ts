@@ -11,6 +11,33 @@ export class MacroDefinition {
 }
 
 /**
+ * Checks if two closed terms are alpha equivalent. Behavior on open terms is unspecified
+ */
+export function alpha_equivalent (ex1 : Expr, ex2: Expr) : boolean {
+  let alpha_equiv_in_context = function (e1 : Expr, vars1 : string[], 
+                                         e2: Expr, vars2 : string[]) : boolean {
+    if (e1.kind === "var" && e2.kind === "var") {
+      return vars1.lastIndexOf(e1.name) === vars2.lastIndexOf(e2.name);
+    } else if (e1.kind === "app" && e2.kind === "app") {
+      return alpha_equiv_in_context(e1.e1, vars1, e2.e1, vars2) &&
+             alpha_equiv_in_context(e1.e2, vars1, e2.e2, vars2);
+    } else if (e1.kind === "abs" && e2.kind === "abs") {
+      // Keeps track of when variable was most recently abstracted based on 
+      // position in array
+      let newvars1 = vars1.slice(); newvars1.push(e1.vbl);
+      let newvars2 = vars2.slice(); newvars2.push(e2.vbl)
+      return alpha_equiv_in_context(e1.body, newvars1, e2.body, newvars2);
+    } else if (e1.kind === "macro" && e2.kind === "macro") {
+      // Macros are closed, so we reset the contexts
+      return alpha_equiv_in_context(e1.body, [], e2.body, []);
+    }
+    // Clearly terms with different structures are not alpha-equivalent
+    return false;
+  };
+  return alpha_equiv_in_context(ex1, [], ex2, []);
+}
+
+/**
  * Attempts to resugar an expression to a Macro defined in the library. The function
  * searches all closed subterms of the input, attempting to replace the term with a macro. 
  * The search occurs in breadth-first order, so largest or outermost terms are resugared

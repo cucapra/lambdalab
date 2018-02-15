@@ -264,13 +264,13 @@ function find_value(expr : Expr, reduce : (e: Expr) => Expr | null)
  */
 
 function is_closed_in_context(e : Expr, context : string[] ) : boolean {
-  if (e.kind == "var") {
+  if (e.kind === "var") {
     return context.indexOf(e.name) >= 0;
   }
-  else if (e.kind == "app") {
+  else if (e.kind === "app") {
     return is_closed_in_context(e.e1, context) && is_closed_in_context (e.e2, context);
   }
-  else if (e.kind == "abs") {
+  else if (e.kind === "abs") {
     let newContext = context.slice();
     newContext.push(e.vbl);
     return is_closed_in_context(e.body, newContext);
