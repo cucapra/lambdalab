@@ -90,11 +90,6 @@ export class StepInfo {
  */
 export function pretty(e: Expr, step : StepInfo | null): string {
   let res = "";
-
-  if(step && step.beta && e === step.target) {
-    // color the target red
-    res += "<r>";
-  }
   switch (e.kind) {
     case "var":
     // color a variable blue if it is the currently abstracted variable:
@@ -117,7 +112,7 @@ export function pretty(e: Expr, step : StepInfo | null): string {
         // active one
         let new_step = step.copy()
         new_step.shadowed = true;
-        res += "<b>λ" + e.vbl + "</b>. " + pretty(e.body, new_step);
+        res += "λ" + e.vbl + ". " + pretty(e.body, new_step);
       } else
         res += "λ" + e.vbl + ". " + pretty(e.body, step);
       break;

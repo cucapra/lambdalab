@@ -77,6 +77,10 @@ function hide(el: HTMLElement) {
   el.style.display = 'none';
 }
 
+function colorize(entry : HTMLLIElement) : HTMLLIElement {
+  return entry;
+}
+
 /**
  * Show the result, given as a string, of executing some code in the list
  * element provided.
@@ -100,7 +104,7 @@ function showResult(res: ReadonlyArray<string>,
   for (let line of res) {
     let entry = document.createElement("li");
     entry.textContent = line;
-    resultList.appendChild(entry);
+    resultList.appendChild(colorize(entry));
   }
 }
 
