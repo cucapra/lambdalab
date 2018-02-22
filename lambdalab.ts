@@ -64,7 +64,7 @@ function runCode(scanner: Scanner, strategy : Strategy): string[] | ParseError {
     let [new_e, sugared] = resugar(e, scanner.macro_lookup, strategy);
     if (sugared) {
       // the last resugaring step counts as a macro-equivalent replacement
-      steps.push("=\xa0\xa0\xa0" + pretty(new_e));
+      steps.push("=\xa0\xa0\xa0" + pretty(new_e, null));
     }
   }
   return steps;

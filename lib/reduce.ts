@@ -116,20 +116,20 @@ export function reduce_cbv(e: Expr): [Expr | null, StepInfo | null] {
   }
 
   if (e.e1.kind === "macro") {
-    return [new App(e.e1.body, e.e2), new StepInfo(false)];
+    return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1)];
   }
 
   // Expand macros on the right hand side if they are applications (expressions that can 
   // step), as this indicates that they need to be expanded for correct CBV evaluation
   if (e.e2.kind === "macro") {
     if(e.e2.body.kind === "app") {
-      return [new App(e.e1, e.e2.body), new StepInfo(false)];
+      return [new App(e.e1, e.e2.body), new StepInfo(false, null, null, null, e.e2)];
     }
   }
 
   // Let's do the time warp again.
   if (e.e1.kind === "abs") {
-    return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true)];
+    return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true, e.e1, e.e2, e.e1.vbl, null)];
   }
 
   return [null, null];
@@ -152,11 +152,11 @@ export function reduce_cbn(e: Expr): [Expr | null, StepInfo | null] {
   }
 
   if (e.e1.kind === "abs") {
-    return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true)];
+    return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true, e.e1, e.e2, e.e1.vbl, null)];
   }
 
   if (e.e1.kind === "macro") {
-    return [new App(e.e1.body, e.e2), new StepInfo(false)];
+    return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1)];
   }
 
   return [null, null];
@@ -183,16 +183,16 @@ export function reduce_normal(e: Expr): [Expr | null, StepInfo | null] {
     }
 
     if (e.e1.kind === "abs") {
-      return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true)];
+      return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true, e.e1, e.e2, e.e1.vbl, null)];
     }
 
     if (e.e1.kind === "macro") {
-      return [new App(e.e1.body, e.e2), new StepInfo(false)];
+      return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1)];
     }
 
     if (e.e2.kind === "macro") {
       if(e.e2.body.kind === "app") {
-        return [new App(e.e1, e.e2.body), new StepInfo(false)];
+        return [new App(e.e1, e.e2.body), new StepInfo(false, null, null, null, e.e2)];
       }
     }
 
@@ -233,16 +233,16 @@ export function reduce_appl(e: Expr): [Expr | null, StepInfo | null] {
       let [body, step] = reduce_appl(e.e1.body);
       if (body)
         return [new App(new Abs(e.e1.vbl, body), e.e2), step];
-      return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true)];
+      return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true, e.e1, e.e2, e.e1.vbl, null)];
     }
 
     if (e.e1.kind === "macro") {
-      return [new App(e.e1.body, e.e2), new StepInfo(false)];
+      return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1)];
     }
 
     if (e.e2.kind === "macro") {
       if(e.e2.body.kind === "app") {
-        return [new App(e.e1, e.e2.body), new StepInfo(false)];
+        return [new App(e.e1, e.e2.body), new StepInfo(false, null, null, null, e.e2)];
       }
     }
 
@@ -282,13 +282,16 @@ export function run(expr : Expr | null, timeout : number,
   }
 
   for (let i = 0; i <= timeout; ++i) {
-    steps.push(getLabel(step) + "\xa0\xa0\xa0" + pretty(expr));
+    let out = getLabel(step) + "\xa0\xa0\xa0";
 
     // Take a step, if possible.
     let [next_expr, next_step] = reduce(expr);
     if (!next_expr) {
+      steps.push(out + pretty(expr, null));
       break;
     }
+    // color expr according to next step taken
+    steps.push(out + pretty(expr, next_step));
     expr = next_expr;
     step = next_step;
     if (i === timeout) return [steps, null]; // Timed out
