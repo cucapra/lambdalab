@@ -96,7 +96,7 @@ export function pretty(e: Expr, step : StepInfo | null): string {
     // it is inside the abstraction in the current redex and has not been shadowed
     // within that abstraction
     if (step && step.beta && step.vbl == e.name && step.active && !step.shadowed)
-      res += "<b>" + e.name + "</b>"
+      res += "<a>" + e.name + "</a>"
     else 
       res += e.name;
       break;
@@ -106,7 +106,7 @@ export function pretty(e: Expr, step : StepInfo | null): string {
       if (step && step.beta && step.abs === e) {
         let new_step = step.copy();
         new_step.active = true;
-        res += "<b>λ" + e.vbl + "</b>. " + pretty(e.body, new_step);
+        res += "<a>λ" + e.vbl + "</a>. " + pretty(e.body, new_step);
       } else if (step && step.beta && step.active && step.abs!.vbl === e.vbl) {
         // set the shadowed flag if this abstraction abstracts the same name as the
         // active one
@@ -119,7 +119,7 @@ export function pretty(e: Expr, step : StepInfo | null): string {
     case "macro":
       // color the macro blue
       if (step && !step.beta && e === step.macro) {
-        res += "<b>" + e.name + "</b>";
+        res += "<a>" + e.name + "</a>";
       } else {
         res += e.name;
       }
@@ -137,7 +137,7 @@ export function pretty(e: Expr, step : StepInfo | null): string {
         rhs = "(" + rhs + ")"
       }
       if (step && step.beta && e.e2 === step.target) {
-        rhs = "<r>" + rhs + "</r>"
+        rhs = "<s>" + rhs + "</s>"
       }
       res += lhs + " " + rhs;
       break;

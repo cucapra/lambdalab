@@ -95,10 +95,10 @@ function colorize(entry : HTMLLIElement, line : string) : HTMLLIElement {
 
     line = line.slice(pos+1);
     let span_within = document.createElement("span");
-    if (line.charAt(0) === 'b') { // blue
-      span_within.setAttribute("style", "color: blue");
-    } else if (line.charAt(0) === 'r') { // red
-      span_within.setAttribute("style", "color: red");
+    if (line.charAt(0) === 'a') { // active abstraction/variable/macro
+      span_within.className = "active_abs"
+    } else if (line.charAt(0) === 's') { // active substitution target
+      span_within.className = "active_subst"
     }
     line = line.slice(2); // trim off "x>"
 
