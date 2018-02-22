@@ -63,7 +63,7 @@ function subst(e: Expr, v: Expr, x: string): Expr {
   switch (e.kind) {
   case "var":
     if (e.name === x) {
-      return v;
+      return v.copy();
     } else {
       return e;
     }

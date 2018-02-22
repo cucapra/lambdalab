@@ -12,6 +12,10 @@ export class Var {
   ) {
     this.kind = "var";
   };
+
+  public copy() : Var {
+    return new Var(this.name);
+  }
 }
 
 /**
@@ -25,6 +29,10 @@ export class App {
   ) {
     this.kind = "app";
   };
+
+  public copy() : App {
+    return new App(this.e1, this.e2);
+  }
 }
 
 /**
@@ -38,6 +46,10 @@ export class Abs {
   ) {
     this.kind = "abs";
   };
+
+  public copy() : Abs {
+    return new Abs(this.vbl, this.body);
+  }
 }
 
 /**
@@ -51,6 +63,10 @@ export class Macro {
   ) {
     this.kind = "macro";
   };
+
+  public copy() : Macro {
+    return new Macro(this.name, this.body);
+  }
 }
 
 /**
