@@ -1,8 +1,8 @@
 /**
  * A very simple recursive-descent parser for the plain lambda-calculus.
  */
-import { pretty, Expr, Abs, App, Var, Macro } from './ast';
-import { reduce_cbv, reduce_cbn, reduce_appl, reduce_normal, Strategy } from './reduce';
+import { pretty, Expr, Abs, App, Var, Macro, StepInfo } from './ast';
+import { reduce_cbv, reduce_cbn, reduce_appl, reduce_normal, Strategy, run } from './reduce';
 import { MacroDefinition, init_macros } from './macro';
 import { TIMEOUT } from '../lambdalab';
 import { skip } from 'tape';
@@ -237,26 +237,9 @@ function parse_abs(s: Scanner, eval_strat : Strategy): Expr | null {
   return new Abs(name, body);
 }
 
-function find_value(expr : Expr, reduce : (e: Expr) => Expr | null) 
-  : [Expr | null, string[]] {
-  
-    let steps: string[] = [];
-
-  if (!expr) {
-    return [null, steps];
-  }
-
-  for (let i = 0; i < TIMEOUT; ++i) {
-    steps.push(pretty(expr));
-    // Take a step, if possible.
-    let next_expr = reduce(expr);
-    if (!next_expr) {
-      return [expr, steps];
-    }
-    expr = next_expr;
-  }
-  // Timeout reached, no value found
-  return [null, steps];
+function find_value(expr : Expr, reduce : (e: Expr) => [Expr | null, StepInfo | null]) 
+  : [string[], Expr | null] {
+  return run(expr, TIMEOUT, reduce);
 }
 
 /*
@@ -325,10 +308,10 @@ export function add_macro(s: Scanner) : string[] {
 
   // Normal order will always find the normal form if it exists
   let fullSteps = find_value(full_expr, reduce_normal);
-  if (fullSteps[0]) {
+  if (fullSteps[1]) {
     s.macro_lookup[macro_name] = 
-      new MacroDefinition(macro_name, null, null, fullSteps[0], full_expr);
-    return fullSteps[1];
+      new MacroDefinition(macro_name, null, null, fullSteps[1], full_expr);
+    return fullSteps[0];
   }
 
   // No normal form, so try to find the appropriate values under cbn and cbv
@@ -339,15 +322,15 @@ export function add_macro(s: Scanner) : string[] {
   let cbv_expr = parse_expr(s, Strategy.CBV);
   let cbnSteps = find_value(cbn_expr, reduce_cbn);
   let cbvSteps = find_value(cbv_expr, reduce_cbv);
-  if (cbnSteps[0]) { // CBN will always find a value if CBV does
+  if (cbnSteps[1]) { // CBN will always find a value if CBV does
     s.macro_lookup[macro_name] = 
-      new MacroDefinition(macro_name, cbvSteps[0], cbnSteps[0], null, full_expr);
-    return cbnSteps[1]; 
+      new MacroDefinition(macro_name, cbvSteps[1], cbnSteps[1], null, full_expr);
+    return cbnSteps[0]; 
   }
 
   // No value found in any evaluation strategy, so just store the literal input
   s.macro_lookup[macro_name] = new MacroDefinition(macro_name, null, null, null, full_expr);
-  return fullSteps[1];
+  return fullSteps[0];
 }
 
 /**

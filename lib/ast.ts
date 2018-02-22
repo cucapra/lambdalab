@@ -58,6 +58,17 @@ export class Macro {
  */
 export type Expr = Var | App | Abs | Macro;
 
+/** 
+ * Structure containing data about most recent eval step for printing purposes
+ */
+
+export class StepInfo {
+  beta : boolean; // whether the last step was a macro expansion (false) or a beta reduction (true)
+  constructor(b : boolean) {
+    this.beta = b;
+  }
+}
+
 /**
  * Pretty-print a lambda-calculus expression as a string.
  */

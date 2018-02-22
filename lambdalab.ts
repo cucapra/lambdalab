@@ -2,7 +2,7 @@
  * The Web interface.
  */
 import { parse, ParseError, Scanner, add_macro } from './lib/parse';
-import { pretty, Expr, Var, App, Abs, Macro } from './lib/ast';
+import { pretty, Expr, Var, App, Abs, Macro, StepInfo } from './lib/ast';
 import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal,
          Strategy, strat_of_string } from './lib/reduce';
 import { resugar } from './lib/macro';
@@ -63,7 +63,8 @@ function runCode(scanner: Scanner, strategy : Strategy): string[] | ParseError {
   if (e) { // Timeout did not occur 
     let [new_e, sugared] = resugar(e, scanner.macro_lookup, strategy);
     if (sugared) {
-      steps.push(pretty(new_e));
+      // the last resugaring step counts as a macro-equivalent replacement
+      steps.push("=\xa0\xa0\xa0" + pretty(new_e));
     }
   }
   return steps;
@@ -84,8 +85,8 @@ function hide(el: HTMLElement) {
  * result string. Eventually, this should be able to add many <li>s to show
  * the process of beta-reduction.
  */
-function showResult(res: ReadonlyArray<string>, resultList: HTMLElement,
-                    helpText: HTMLCollectionOf<Element>) {
+function showResult(res: ReadonlyArray<string>,
+                    resultList: HTMLElement, helpText: HTMLCollectionOf<Element>) {
   // Hide the help text on first successful execution.
   for (let i = 0; i < helpText.length; ++i) {
     hide(helpText[i] as HTMLElement);
@@ -96,7 +97,6 @@ function showResult(res: ReadonlyArray<string>, resultList: HTMLElement,
   range.selectNodeContents(resultList);
   range.deleteContents();
 
-  // Add new entries.
   for (let line of res) {
     let entry = document.createElement("li");
     entry.textContent = line;

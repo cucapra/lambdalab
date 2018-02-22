@@ -1,7 +1,7 @@
 /**
  * Beta-reduction for lambda-terms.
  */
-import { pretty, Expr, Abs, App, Var, Macro } from './ast';
+import { pretty, Expr, Abs, App, Var, Macro, StepInfo } from './ast';
 
 export enum Strategy {
   CBV = 1, 
@@ -97,188 +97,200 @@ function subst(e: Expr, v: Expr, x: string): Expr {
  * Perform a single call-by-value beta-reduction on the expression. If the
  * expression cannot take a step, return null instead.
  */
-export function reduce_cbv(e: Expr): Expr | null {
+export function reduce_cbv(e: Expr): [Expr | null, StepInfo | null] {
   // Only applications can step.
   if (!(e.kind === "app")) {
-    return null;
+    return [null, null];
   }
 
   // Try a step on the left.
-  let lhs = reduce_cbv(e.e1);
+  let [lhs, lstep] = reduce_cbv(e.e1);
   if (lhs) {
-    return new App(lhs, e.e2);
+    return [new App(lhs, e.e2), lstep];
   }
 
   // Try a step on the right.
-  let rhs = reduce_cbv(e.e2);
+  let [rhs, rstep] = reduce_cbv(e.e2);
   if (rhs) {
-    return new App(e.e1, rhs);
+    return [new App(e.e1, rhs), rstep];
   }
 
   if (e.e1.kind === "macro") {
-    return new App(e.e1.body, e.e2);
+    return [new App(e.e1.body, e.e2), new StepInfo(false)];
   }
 
   // Expand macros on the right hand side if they are applications (expressions that can 
   // step), as this indicates that they need to be expanded for correct CBV evaluation
   if (e.e2.kind === "macro") {
     if(e.e2.body.kind === "app") {
-      return new App(e.e1, e.e2.body);
+      return [new App(e.e1, e.e2.body), new StepInfo(false)];
     }
   }
 
   // Let's do the time warp again.
   if (e.e1.kind === "abs") {
-    return subst(e.e1.body, e.e2, e.e1.vbl);
+    return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true)];
   }
 
-  return null;
+  return [null, null];
 }
 
 /**
  * Perform a single call-by-name beta-reduction on the expression. If the
  * expression cannot take a step, return null instead.
  */
-export function reduce_cbn(e: Expr): Expr | null {
+export function reduce_cbn(e: Expr): [Expr | null, StepInfo | null] {
   if (!(e.kind === "app")) {
-    return null;
+    return [null, null];
   }
 
   // Call-by-name differs from Call-by-value only in that it does
   // try to reduce the rhs before substituting it into the left
-  let lhs = reduce_cbn(e.e1);
+  let [lhs, step] = reduce_cbn(e.e1);
   if (lhs) {
-    return new App(lhs, e.e2);
+    return [new App(lhs, e.e2), step];
   }
 
   if (e.e1.kind === "abs") {
-    return subst(e.e1.body, e.e2, e.e1.vbl);
+    return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true)];
   }
 
   if (e.e1.kind === "macro") {
-    return new App(e.e1.body, e.e2);
+    return [new App(e.e1.body, e.e2), new StepInfo(false)];
   }
 
-  return null;
+  return [null, null];
 }
 
 /**
  * Perform a single normal order beta-reduction on the expression. If the
  * expression cannot take a step, return null instead. 
  */
-export function reduce_normal(e: Expr): Expr | null {
+export function reduce_normal(e: Expr): [Expr | null, StepInfo | null] {
   // Normal order reduces under lambdas
   if (e.kind === "abs") {
-    let body = reduce_appl(e.body);
+    let [body, step] = reduce_appl(e.body);
     if (body)
-      return new Abs(e.vbl, body);
+      return [new Abs(e.vbl, body), step];
   }
 
   if (e.kind === "app") {
     if (e.e1.kind === "app") {
-      let lhs = reduce_appl(e.e1);
+      let [lhs, step] = reduce_appl(e.e1);
       if (lhs) {
-        return new App(lhs, e.e2);
+        return [new App(lhs, e.e2), step];
       }
     }
 
     if (e.e1.kind === "abs") {
-      return subst(e.e1.body, e.e2, e.e1.vbl);
+      return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true)];
     }
 
     if (e.e1.kind === "macro") {
-      return new App(e.e1.body, e.e2);
+      return [new App(e.e1.body, e.e2), new StepInfo(false)];
     }
 
     if (e.e2.kind === "macro") {
       if(e.e2.body.kind === "app") {
-        return new App(e.e1, e.e2.body);
+        return [new App(e.e1, e.e2.body), new StepInfo(false)];
       }
     }
 
     // This ensures we eventually get to all redexes
-    let rhs = reduce_appl(e.e2);
+    let [rhs, step] = reduce_appl(e.e2);
     if (rhs) {
-      return new App(e.e1, rhs);
+      return [new App(e.e1, rhs), step];
     }
   }
 
-  return null;
+  return [null, null];
 }
 
 /**
  * Perform a single applicative order beta-reduction on the expression. If the
- * expression cannot take a step, return null instead. 
+ * expression cannot take a step, return null instead. Also carries info about 
+ * the most recent step performed.
  */
-export function reduce_appl(e: Expr): Expr | null {
+export function reduce_appl(e: Expr): [Expr | null, StepInfo | null] {
   // Applicative order reduces under lambdas
   if (e.kind === "abs") {
-    let body = reduce_appl(e.body);
+    let [body, step] = reduce_appl(e.body);
     if (body)
-      return new Abs(e.vbl, body);
-    return null;
+      return [new Abs(e.vbl, body), step];
+    return [null, null];
   }
 
   // As call-by-name, but with an attempt to reduce the rhs iff there 
   // is nothing to reduce or subsitute on the left
   if (e.kind === "app") {
 
-    let lhs = reduce_appl(e.e1);
+    let [lhs, lstep] = reduce_appl(e.e1);
     if (lhs) {
-      return new App(lhs, e.e2);
+      return [new App(lhs, e.e2), lstep];
     }
 
     if (e.e1.kind === "abs") {
-      let body = reduce_appl(e.e1.body);
+      let [body, step] = reduce_appl(e.e1.body);
       if (body)
-        return new App(new Abs(e.e1.vbl, body), e.e2);
-      return subst(e.e1.body, e.e2, e.e1.vbl);
+        return [new App(new Abs(e.e1.vbl, body), e.e2), step];
+      return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true)];
     }
 
     if (e.e1.kind === "macro") {
-      return new App(e.e1.body, e.e2);
+      return [new App(e.e1.body, e.e2), new StepInfo(false)];
     }
 
     if (e.e2.kind === "macro") {
       if(e.e2.body.kind === "app") {
-        return new App(e.e1, e.e2.body);
+        return [new App(e.e1, e.e2.body), new StepInfo(false)];
       }
     }
 
     // This ensures we eventually get to all redexes
-    let rhs = reduce_appl(e.e2);
+    let [rhs, rstep] = reduce_appl(e.e2);
     if (rhs) {
-      return new App(e.e1, rhs);
+      return [new App(e.e1, rhs), rstep];
     }
   }
 
-  return null;
+  return [null, null];
 }
 
 /**
- * Return the result of running the expr with a given reduction strategy. 
- * Also returns the final expression for resugaring purposes.
+ * Produces the correct string label from a StepInfo object
  */
 
+function getLabel(step : StepInfo | null): string {
+  if(!step) return "\xa0\xa0";
+  if(step.beta) return "→";
+  else return "=";
+}
 
+/**
+ * Return the result of running the expr with a given reduction strategy, with a 
+ * matching list of labels for each reduction step (= or →)
+ * Also returns the final expression for resugaring purposes.
+ */
 export function run(expr : Expr | null, timeout : number, 
-  reduce : (e: Expr) => Expr | null) : [string[], Expr | null] {
+  reduce : (e: Expr) => [Expr | null, StepInfo | null]) : [string[], Expr | null] {
     
   let steps: string[] = [];
+  let step = null;
 
   if (!expr) {
     return [steps, null];
   }
 
   for (let i = 0; i <= timeout; ++i) {
-    steps.push(pretty(expr));
+    steps.push(getLabel(step) + "\xa0\xa0\xa0" + pretty(expr));
 
     // Take a step, if possible.
-    let next_expr = reduce(expr);
+    let [next_expr, next_step] = reduce(expr);
     if (!next_expr) {
       break;
     }
     expr = next_expr;
+    step = next_step;
     if (i === timeout) return [steps, null]; // Timed out
   }
 

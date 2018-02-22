@@ -85,7 +85,7 @@ function equiv_s (e1 : Expr | null, e2 : Expr | null, sigma : MacroLibrary, s : 
   // Find a normal form for e1
   for (let i = 0; i <= timeout; ++i) {
     // Take a step, if possible.
-    let next_e1 = strategy(e1);
+    let [next_e1, _] = strategy(e1);
     if (!next_e1) {
       break;
     }
@@ -96,7 +96,7 @@ function equiv_s (e1 : Expr | null, e2 : Expr | null, sigma : MacroLibrary, s : 
   // Find a normal form for e2
   for (let i = 0; i <= timeout; ++i) {
     // Take a step, if possible.
-    let next_e2 = strategy(e2);
+    let [next_e2, _] = strategy(e2);
     if (!next_e2) {
       break;
     }
