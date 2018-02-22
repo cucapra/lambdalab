@@ -134,11 +134,10 @@ export function pretty(e: Expr, step : StepInfo | null): string {
       // Parenthesize applications and abstractions on the right.
       let rhs = pretty(e.e2, step);
       if (e.e2 instanceof App || e.e2 instanceof Abs) {
-        if (step && step.beta && e.e2 === step.target) {
-          rhs = "<r>(" + rhs + ")</r>"
-        } else {
-          rhs = "(" + rhs + ")"
-        }
+        rhs = "(" + rhs + ")"
+      }
+      if (step && step.beta && e.e2 === step.target) {
+        rhs = "<r>" + rhs + "</r>"
       }
       res += lhs + " " + rhs;
       break;

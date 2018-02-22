@@ -77,8 +77,37 @@ function hide(el: HTMLElement) {
   el.style.display = 'none';
 }
 
-function colorize(entry : HTMLLIElement) : HTMLLIElement {
-  return entry;
+function colorize(entry : HTMLLIElement, line : string) : HTMLLIElement {
+  while (true) { // will eventually terminate when no more < is found
+    let pos = 0;
+    pos = line.indexOf("<");
+    if (pos === -1) {
+      let span = document.createElement("span");
+      span.textContent = line;
+      entry.appendChild(span);
+      return entry;
+    }
+
+    let between = line.slice(0, pos); // text between color tags
+    let span_between = document.createElement("span");
+    span_between.textContent = between;
+    entry.appendChild(span_between);
+
+    line = line.slice(pos+1);
+    let span_within = document.createElement("span");
+    if (line.charAt(0) === 'b') { // blue
+      span_within.setAttribute("style", "color: blue");
+    } else if (line.charAt(0) === 'r') { // red
+      span_within.setAttribute("style", "color: red");
+    }
+    line = line.slice(2); // trim off "x>"
+
+    pos = line.indexOf("<");
+    let within = line.slice(0, pos); // text inside color tag
+    span_within.textContent = within;
+    entry.appendChild(span_within);
+    line = line.slice(pos+4); // trim off </x>
+  }
 }
 
 /**
@@ -103,8 +132,7 @@ function showResult(res: ReadonlyArray<string>,
 
   for (let line of res) {
     let entry = document.createElement("li");
-    entry.textContent = line;
-    resultList.appendChild(colorize(entry));
+    resultList.appendChild(colorize(entry, line));
   }
 }
 
