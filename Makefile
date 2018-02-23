@@ -2,6 +2,7 @@
 web: lambdalab.bundle.js
 
 lambdalab.bundle.js: lambdalab.ts $(wildcard lib/*.ts)
+	yarn
 	yarn run build-web
 
 .PHONY: dist
