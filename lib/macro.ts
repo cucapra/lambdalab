@@ -181,6 +181,29 @@ export function resugar(e : Expr, sigma : MacroLibrary, s : Strategy) : [Expr, b
     }
 }
 
+/**
+ * Compares two macros. m1 <= m2 if m2 uses m1 in its definition
+ */
+
+export function compareMacro(m1 : MacroDefinition, m2 : MacroDefinition) : number {
+  function dependsExpr (e : Expr, name : string) : boolean {
+    if (e.kind === "macro") {
+      return name === e.name;
+    } else if (e.kind === "app") {
+      return dependsExpr(e.e1, name) || dependsExpr(e.e2, name);
+    } else if (e.kind === "abs") {
+      return dependsExpr(e.body, name);
+    } else {
+      return false;
+    }
+  }
+  if (dependsExpr(m1.unreduced, m2.name)) {
+    return -1;
+  } else if (dependsExpr(m2.unreduced, m1.name)) {
+    return 1;
+  }
+  return 0;
+}
 
 /**
  * Initialize the scanner to contain a number of pre-defined macros that will probably

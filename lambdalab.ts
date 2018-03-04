@@ -5,7 +5,7 @@ import { parse, ParseError, Scanner, add_macro } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro, StepInfo } from './lib/ast';
 import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal,
          Strategy, strat_of_string } from './lib/reduce';
-import { resugar } from './lib/macro';
+import { resugar, MacroDefinition, compareMacro } from './lib/macro';
 
 /**
  * How many reduction steps to execute before timing out?
@@ -337,13 +337,39 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
   return execute;
 }
 
+
+/**
+ * Update the list of defined macros to display all the macros in the scanner
+ */
+
+function updateMacroList (scanner : Scanner, macroList : HTMLElement) {
+  // Clear the old contents.
+  let range = document.createRange();
+  range.selectNodeContents(macroList);
+  range.deleteContents();
+
+  let macros : MacroDefinition[] = [];
+  for(let name of Object.keys(scanner.macro_lookup)) {
+    macros.push(scanner.macro_lookup[name])
+  } 
+
+  //TODO: topologically sort macros
+
+  for (let macro of macros) {
+    let entry = document.createElement("li");
+    entry.textContent = macro.name + " ≜ " + pretty(macro.unreduced, null)
+    macroList.appendChild(entry);
+  }
+}
+
 /**
  * Set up the macro event handlers. This is called when the DOM is first loaded.
  */
 function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
-  helpText: HTMLCollectionOf<Element>, errorBox: HTMLElement) {
+  helpText: HTMLCollectionOf<Element>, errorBox: HTMLElement, macroList:HTMLElement) {
 
   let scanner = new Scanner();
+  updateMacroList(scanner, macroList);
 
   // Run the code currently entered into the box.
   function execute() {
@@ -360,6 +386,7 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
       let result = add_macro(scanner);
       clearError(errorBox);
       showResult(result, resultList, helpText);
+      updateMacroList(scanner, macroList);
     }
     catch (e)  {
       if (e instanceof ParseError) {
@@ -420,10 +447,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   let macroBox = document.getElementById("macro")!;
-  let macroList = document.getElementById("macro_result")!;
+  let macroResult = document.getElementById("macro_result")!;
   let macroText = document.getElementsByClassName("macro_help");
   let macroErrorBox = document.getElementById("macro_error")!;
-  let scanner = macroSetUp(macroBox, macroList, macroText, macroErrorBox);
+  let macroList = document.getElementById("macrolist")!;
+  let scanner = macroSetUp(macroBox, macroResult, macroText, macroErrorBox, macroList);
 
   let programBox = document.getElementById("program")!;
   let strategies = document.getElementsByName("evalStrat")! as NodeListOf<HTMLInputElement>;
