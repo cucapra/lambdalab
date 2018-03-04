@@ -18,7 +18,8 @@ export class ParseError {
 }
 
 /**
- * A simple tokenization helper that advances an offset in a string.
+ * A simple tokenization helper that advances an offset in a string. Also contains data about currently defined macros for use in parsing
+ * and evaluation. 
  */
 export class Scanner {
   public offset: number;
@@ -35,6 +36,15 @@ export class Scanner {
   set_string(s : string) {
     this.offset = 0;
     this.str = s;
+  }
+
+  copyMacros() : {[name : string] : MacroDefinition} {
+    let s : {[name : string] : MacroDefinition} = {};
+    Object.keys(this.macro_lookup).forEach(name => {
+      let macro = this.macro_lookup[name];
+      s[name] = new MacroDefinition(macro.name, macro.cbv_val, macro.cbn_val, macro.full_val, macro.unreduced);
+    });
+    return s;
   }
 
   /**
@@ -279,7 +289,7 @@ export function is_closed(e : Expr) : boolean {
  * TODO: This only accepts macros without arguments right now
  */
 
-export function add_macro(s: Scanner) : string[] {
+export function add_macro(s: Scanner) : [string, string[]] {
   // Move scanner position to beginning of macro
   skip_whitespace(s);
 
@@ -311,7 +321,7 @@ export function add_macro(s: Scanner) : string[] {
   if (fullSteps[1]) {
     s.macro_lookup[macro_name] = 
       new MacroDefinition(macro_name, null, null, fullSteps[1], full_expr);
-    return fullSteps[0];
+    return [macro_name, fullSteps[0]];
   }
 
   // No normal form, so try to find the appropriate values under cbn and cbv
@@ -325,12 +335,12 @@ export function add_macro(s: Scanner) : string[] {
   if (cbnSteps[1]) { // CBN will always find a value if CBV does
     s.macro_lookup[macro_name] = 
       new MacroDefinition(macro_name, cbvSteps[1], cbnSteps[1], null, full_expr);
-    return cbnSteps[0]; 
+    return [macro_name, cbnSteps[0]]; 
   }
 
   // No value found in any evaluation strategy, so just store the literal input
   s.macro_lookup[macro_name] = new MacroDefinition(macro_name, null, null, null, full_expr);
-  return fullSteps[0];
+  return [macro_name, fullSteps[0]];
 }
 
 /**

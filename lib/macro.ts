@@ -182,27 +182,24 @@ export function resugar(e : Expr, sigma : MacroLibrary, s : Strategy) : [Expr, b
 }
 
 /**
- * Compares two macros. m1 <= m2 if m2 uses m1 in its definition
+ * Gets the dependencies of macro m1. Return a list containing elements of the form
+ * (m2, m1), where m2 is a dependency of m1.
  */
 
-export function compareMacro(m1 : MacroDefinition, m2 : MacroDefinition) : number {
-  function dependsExpr (e : Expr, name : string) : boolean {
+export function getDependencies(m1 : MacroDefinition, s : Scanner) : MacroDefinition[][] {
+  function dependsExpr (e : Expr) : MacroDefinition[] {
     if (e.kind === "macro") {
-      return name === e.name;
+      return [s.macro_lookup[e.name]];
     } else if (e.kind === "app") {
-      return dependsExpr(e.e1, name) || dependsExpr(e.e2, name);
+      return dependsExpr(e.e1).concat(dependsExpr(e.e2));
     } else if (e.kind === "abs") {
-      return dependsExpr(e.body, name);
+      return dependsExpr(e.body);
     } else {
-      return false;
+      return [];
     }
   }
-  if (dependsExpr(m1.unreduced, m2.name)) {
-    return -1;
-  } else if (dependsExpr(m2.unreduced, m1.name)) {
-    return 1;
-  }
-  return 0;
+
+  return dependsExpr(m1.unreduced).map(m2 => [m2, m1]);
 }
 
 /**

@@ -1,7 +1,9 @@
 {
   "name": "lambdalab",
   "version": "1.0.0",
-  "dependencies": {},
+  "dependencies": {
+    "toposort": "^1.0.6"
+  },
   "devDependencies": {
     "@types/tape": "^4.2.29",
     "tape": "^4.8.0",

@@ -5,7 +5,7 @@ import { parse, ParseError, Scanner, add_macro } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro, StepInfo } from './lib/ast';
 import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal,
          Strategy, strat_of_string } from './lib/reduce';
-import { resugar, MacroDefinition, compareMacro } from './lib/macro';
+import { resugar, MacroDefinition, getDependencies } from './lib/macro';
 
 /**
  * How many reduction steps to execute before timing out?
@@ -343,23 +343,23 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
  */
 
 function updateMacroList (scanner : Scanner, macroList : HTMLElement) {
+  let macros = Object.keys(scanner.macro_lookup).map(name => scanner.macro_lookup[name]);
+  let dependencies = macros.reduce((acc : MacroDefinition[][], macro : MacroDefinition) => 
+                                    acc.concat(getDependencies(macro, scanner)), []);
+  let toposort = require('toposort');
+
+  let sortedMacros : MacroDefinition[] = toposort.array(macros, dependencies);
+
   // Clear the old contents.
   let range = document.createRange();
   range.selectNodeContents(macroList);
   range.deleteContents();
 
-  let macros : MacroDefinition[] = [];
-  for(let name of Object.keys(scanner.macro_lookup)) {
-    macros.push(scanner.macro_lookup[name])
-  } 
-
-  //TODO: topologically sort macros
-
-  for (let macro of macros) {
+  sortedMacros.forEach(macro => {
     let entry = document.createElement("li");
     entry.textContent = macro.name + " ≜ " + pretty(macro.unreduced, null)
     macroList.appendChild(entry);
-  }
+  });
 }
 
 /**
@@ -383,10 +383,17 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
 
     scanner.set_string(code);
     try {
-      let result = add_macro(scanner);
+      let old = scanner.copyMacros();
+      let [name, result] = add_macro(scanner);
+      try {
+        updateMacroList(scanner, macroList);
+      }
+      catch (e) {
+        scanner.macro_lookup = old;
+        throw new ParseError("Cannot define circularly dependent macro", 0);
+      }
       clearError(errorBox);
       showResult(result, resultList, helpText);
-      updateMacroList(scanner, macroList);
     }
     catch (e)  {
       if (e instanceof ParseError) {
