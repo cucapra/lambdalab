@@ -339,17 +339,24 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
 
 
 /**
- * Update the list of defined macros to display all the macros in the scanner
+ * Sort the list of macros by dependency. Returns the sorted list 
  */
-
-function updateMacroList (scanner : Scanner, macroList : HTMLElement) {
+function sortMacros(scanner : Scanner) {
   let macros = Object.keys(scanner.macro_lookup).map(name => scanner.macro_lookup[name]);
   let dependencies = macros.reduce((acc : MacroDefinition[][], macro : MacroDefinition) => 
                                     acc.concat(getDependencies(macro, scanner)), []);
   let toposort = require('toposort');
 
   let sortedMacros : MacroDefinition[] = toposort.array(macros, dependencies);
+  return sortedMacros;
+}
 
+
+/**
+ * Update the list of defined macros to display all the macros in the scanner. 
+ */
+
+function updateMacroList (sortedMacros : MacroDefinition[], macroList : HTMLElement) {
   // Clear the old contents.
   let range = document.createRange();
   range.selectNodeContents(macroList);
@@ -369,7 +376,8 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
   helpText: HTMLCollectionOf<Element>, errorBox: HTMLElement, macroList:HTMLElement) {
 
   let scanner = new Scanner();
-  updateMacroList(scanner, macroList);
+  let sorted = sortMacros(scanner);
+  updateMacroList(sorted, macroList);
 
   // Run the code currently entered into the box.
   function execute() {
@@ -386,7 +394,9 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
       let old = scanner.copyMacros();
       let [name, result] = add_macro(scanner);
       try {
-        updateMacroList(scanner, macroList);
+        let sorted = sortMacros(scanner);
+        scanner.recompileMacros(sorted);
+        updateMacroList(sorted, macroList);
       }
       catch (e) {
         scanner.macro_lookup = old;

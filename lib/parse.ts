@@ -38,6 +38,20 @@ export class Scanner {
     this.str = s;
   }
 
+
+  /**
+   * Recompiles the macros in the scanner to reflect changes in dependencies
+   * 
+   * @param sorted the sorted list of macros by dependency. This is needed so all the necessary macros are present
+   * during compilation
+   */
+  recompileMacros(sorted : MacroDefinition[]) {
+    this.macro_lookup = {}
+    sorted.forEach(macro => {
+      compileMacro(this, pretty(macro.unreduced, null), macro.name);
+    });
+  }
+
   copyMacros() : {[name : string] : MacroDefinition} {
     let s : {[name : string] : MacroDefinition} = {};
     Object.keys(this.macro_lookup).forEach(name => {
@@ -281,6 +295,44 @@ function is_closed_in_context(e : Expr, context : string[] ) : boolean {
 export function is_closed(e : Expr) : boolean {
   return is_closed_in_context(e, []);
 }
+
+function compileMacro(s : Scanner, macro_text : string, macro_name : string) : [string, string[]] {
+    // Parse macro and attempt to evaluate it under full beta reduction
+    s.set_string(macro_text);
+    let full_expr = parse_expr(s, Strategy.Normal);
+
+    // Macros must be closed values
+    if (!is_closed(full_expr)) {
+      throw s.error("Macros must be closed terms");
+    }
+  
+    // Normal order will always find the normal form if it exists
+    let fullSteps = find_value(full_expr, reduce_normal);
+    if (fullSteps[1]) {
+      s.macro_lookup[macro_name] = 
+        new MacroDefinition(macro_name, null, null, fullSteps[1], full_expr);
+      return [macro_name, fullSteps[0]];
+    }
+  
+    // No normal form, so try to find the appropriate values under cbn and cbv
+    // Need to reset scanner string because it was consumed before
+    s.set_string(macro_text);
+    let cbn_expr = parse_expr(s, Strategy.CBN);
+    s.set_string(macro_text);
+    let cbv_expr = parse_expr(s, Strategy.CBV);
+    let cbnSteps = find_value(cbn_expr, reduce_cbn);
+    let cbvSteps = find_value(cbv_expr, reduce_cbv);
+    if (cbnSteps[1]) { // CBN will always find a value if CBV does
+      s.macro_lookup[macro_name] = 
+        new MacroDefinition(macro_name, cbvSteps[1], cbnSteps[1], null, full_expr);
+      return [macro_name, cbnSteps[0]]; 
+    }
+  
+    // No value found in any evaluation strategy, so just store the literal input
+    s.macro_lookup[macro_name] = new MacroDefinition(macro_name, null, null, null, full_expr);
+    return [macro_name, fullSteps[0]];
+}
+
 /*
  * Parses a macro definition and adds a new macro to the interpreter session. Expects
  * definitions of form <MACRO> ≜ <EXPR> and will throw an error if this is not satisfied.
@@ -308,39 +360,7 @@ export function add_macro(s: Scanner) : [string, string[]] {
 
   let inputStr = s.str.substring(s.str.indexOf("≜") + 1);
 
-  // Parse macro and attempt to evaluate it under full beta reduction
-  let full_expr = parse_expr(s, Strategy.Normal);
-
-  // Macros must be closed values
-  if (!is_closed(full_expr)) {
-    throw s.error("Macros must be closed terms");
-  }
-
-  // Normal order will always find the normal form if it exists
-  let fullSteps = find_value(full_expr, reduce_normal);
-  if (fullSteps[1]) {
-    s.macro_lookup[macro_name] = 
-      new MacroDefinition(macro_name, null, null, fullSteps[1], full_expr);
-    return [macro_name, fullSteps[0]];
-  }
-
-  // No normal form, so try to find the appropriate values under cbn and cbv
-  // Need to reset scanner string because it was consumed before
-  s.set_string(inputStr);
-  let cbn_expr = parse_expr(s, Strategy.CBN);
-  s.set_string(inputStr);
-  let cbv_expr = parse_expr(s, Strategy.CBV);
-  let cbnSteps = find_value(cbn_expr, reduce_cbn);
-  let cbvSteps = find_value(cbv_expr, reduce_cbv);
-  if (cbnSteps[1]) { // CBN will always find a value if CBV does
-    s.macro_lookup[macro_name] = 
-      new MacroDefinition(macro_name, cbvSteps[1], cbnSteps[1], null, full_expr);
-    return [macro_name, cbnSteps[0]]; 
-  }
-
-  // No value found in any evaluation strategy, so just store the literal input
-  s.macro_lookup[macro_name] = new MacroDefinition(macro_name, null, null, null, full_expr);
-  return [macro_name, fullSteps[0]];
+  return compileMacro(s, inputStr, macro_name);
 }
 
 /**
