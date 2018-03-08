@@ -55,6 +55,14 @@
             #options p {
                 margin: 0.5rem 0;
             }
+
+            #graph_output {
+                float:right;
+                overflow:auto;
+                width: 1000px;
+                height: 1000px;
+            }
+
             #show_options {
                 position: absolute;
                 right: 0;
@@ -92,6 +100,8 @@
         <h1>λab</h1>
 
         <div id="program" contenteditable="true">λx. x</div>
+
+        <div id="graph_output"></div>
 
         <ul id="program_result"></ul>
 

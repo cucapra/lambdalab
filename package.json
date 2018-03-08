@@ -2,7 +2,8 @@
   "name": "lambdalab",
   "version": "1.0.0",
   "dependencies": {
-    "toposort": "^1.0.6"
+    "toposort": "^1.0.6",
+    "viz.js": "^1.8.1"
   },
   "devDependencies": {
     "@types/tape": "^4.2.29",

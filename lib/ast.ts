@@ -189,6 +189,9 @@ export function convertToDot(e : Expr) : string {
   }
   let [nodes, connections] = collectTree(e, 0, 1);
   let labels = nodes.reduce((acc : string, elt : string) => acc + "\n" + elt);
-  let treeString = connections.reduce((acc : string, elt : string) => acc + "\n" + elt);
+  let treeString = "";
+  if (connections.length > 0) {
+    treeString = connections.reduce((acc : string, elt : string) => acc + "\n" + elt);
+  }
   return "graph AST {\n" + labels + "\n" + treeString + "}";
 }

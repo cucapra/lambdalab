@@ -34,6 +34,24 @@ function insertText(text: string) {
   }
 }
 
+function renderAST(e : Expr) {
+  let Viz = require('viz.js');
+  let dotAST = convertToDot(e);
+  let svg = Viz(dotAST);
+
+  let graphOut = document.getElementById("graph_output")!;
+  let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  graphContent.setAttribute("overflow", "auto");
+  graphContent.innerHTML = svg;
+
+  // Clear the old contents.
+  let range = document.createRange();
+  range.selectNodeContents(graphOut);
+  range.deleteContents();
+
+  graphOut.appendChild(graphContent);
+}
+
 /**
  * Execute a lambda-calculus expression in a string. Return a new set of steps
  * to display or a parse error.
@@ -59,10 +77,9 @@ function runCode(scanner: Scanner, strategy : Strategy): string[] | ParseError {
   if (strategy === Strategy.Appl)
     reduce = reduce_appl;
 
-
-  if(expr) {
-    // Just for testing purposes, print dot visualization
-    console.log(convertToDot(expr));
+  // TODO: generalize this to print each line of the results as a tree
+  if (expr) {
+    renderAST(expr);
   }
   
   let [steps, e] = run(expr, TIMEOUT, reduce);
