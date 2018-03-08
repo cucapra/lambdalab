@@ -2,7 +2,7 @@
  * The Web interface.
  */
 import { parse, ParseError, Scanner, add_macro } from './lib/parse';
-import { pretty, Expr, Var, App, Abs, Macro, StepInfo } from './lib/ast';
+import { pretty, Expr, Var, App, Abs, Macro, StepInfo, convertToDot } from './lib/ast';
 import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal,
          Strategy, strat_of_string } from './lib/reduce';
 import { resugar, MacroDefinition, getDependencies } from './lib/macro';
@@ -59,6 +59,12 @@ function runCode(scanner: Scanner, strategy : Strategy): string[] | ParseError {
   if (strategy === Strategy.Appl)
     reduce = reduce_appl;
 
+
+  if(expr) {
+    // Just for testing purposes, print dot visualization
+    console.log(convertToDot(expr));
+  }
+  
   let [steps, e] = run(expr, TIMEOUT, reduce);
   if (e) { // Timeout did not occur 
     let [new_e, sugared] = resugar(e, scanner.macro_lookup, strategy);

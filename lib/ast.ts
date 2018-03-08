@@ -160,3 +160,35 @@ export function pretty(e: Expr, step : StepInfo | null): string {
   }
   return res;
 }
+
+/**
+ * Format a lambda calculus program as a dot file
+ */
+
+export function convertToDot(e : Expr) : string {
+  function collectTree(e : Expr, parent : number | null, self : number) : [string[], string[]] {
+    let connection : string[] = [];
+    if (parent) {
+      connection = [parent + " -- " + self +";"];
+    }
+    switch (e.kind) {
+      case "var":
+        return [[self + " [label=\"" + e.name + "\"];"], connection];
+      case "abs":
+        let label = [self + " [label=\"λ" + e.vbl + "\"];"];
+        let [sublabels, subtree] = collectTree(e.body, self, self * 2);
+        return [sublabels.concat(label), subtree.concat(connection)];
+      case "macro":
+        return [[self + " [label=\"" + e.name + "\"];"], connection];
+      case "app":
+        label = [self + " [label=\"APP\"];"];
+        let [sublabels1, subtree1] = collectTree(e.e1, self, self * 2);
+        let [sublabels2, subtree2] = collectTree(e.e2, self, self * 2 + 1);
+        return [sublabels1.concat(sublabels2, label), subtree1.concat(subtree2, connection)];
+    }
+  }
+  let [nodes, connections] = collectTree(e, 0, 1);
+  let labels = nodes.reduce((acc : string, elt : string) => acc + "\n" + elt);
+  let treeString = connections.reduce((acc : string, elt : string) => acc + "\n" + elt);
+  return "graph AST {\n" + labels + "\n" + treeString + "}";
+}
