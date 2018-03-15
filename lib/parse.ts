@@ -262,8 +262,17 @@ function parse_abs(s: Scanner, eval_strat : Strategy): Expr | null {
 }
 
 function find_value(expr : Expr, reduce : (e: Expr) => [Expr | null, StepInfo | null]) 
-  : [string[], Expr | null] {
-  return run(expr, TIMEOUT, reduce);
+  : [[string, Expr, StepInfo | null][], Expr | null] {
+
+  let data = run(expr, TIMEOUT, reduce);
+  if (data.length == 0)  {
+    return [[], null];
+  } 
+  if (data[data.length-1][2] == null) { //did not time out
+    return [data, data[data.length-1][1]];
+  }
+  return [data, null]
+
 }
 
 /*
@@ -296,7 +305,8 @@ export function is_closed(e : Expr) : boolean {
   return is_closed_in_context(e, []);
 }
 
-function compileMacro(s : Scanner, macro_text : string, macro_name : string) : [string, string[]] {
+function compileMacro(s : Scanner, macro_text : string, macro_name : string) :
+   [string, [string, Expr, StepInfo | null][]] {
     // Parse macro and attempt to evaluate it under full beta reduction
     s.set_string(macro_text);
     let full_expr = parse_expr(s, Strategy.Normal);
@@ -341,7 +351,7 @@ function compileMacro(s : Scanner, macro_text : string, macro_name : string) : [
  * TODO: This only accepts macros without arguments right now
  */
 
-export function add_macro(s: Scanner) : [string, string[]] {
+export function add_macro(s: Scanner) : [string, [string, Expr, StepInfo | null][]] {
   // Move scanner position to beginning of macro
   skip_whitespace(s);
 

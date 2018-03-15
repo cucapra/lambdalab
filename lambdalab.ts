@@ -56,7 +56,7 @@ function renderAST(e : Expr) {
  * Execute a lambda-calculus expression in a string. Return a new set of steps
  * to display or a parse error.
  */
-function runCode(scanner: Scanner, strategy : Strategy): string[] | ParseError {
+function runCode(scanner: Scanner, strategy : Strategy):  [string, Expr, (StepInfo | null)][] | ParseError {
   let expr;
   try {
     expr = parse(scanner, strategy);
@@ -82,15 +82,16 @@ function runCode(scanner: Scanner, strategy : Strategy): string[] | ParseError {
     renderAST(expr);
   }
   
-  let [steps, e] = run(expr, TIMEOUT, reduce);
-  if (e) { // Timeout did not occur 
-    let [new_e, sugared] = resugar(e, scanner.macro_lookup, strategy);
+  let rundata = run(expr, TIMEOUT, reduce);
+
+  if (rundata.length > 0 && !rundata[rundata.length-1][2]) {// null stepinfo means no timeout
+    let [new_e, sugared] = resugar(rundata[rundata.length-1][1]!, scanner.macro_lookup, strategy);
     if (sugared) {
       // the last resugaring step counts as a macro-equivalent replacement
-      steps.push("=\xa0\xa0\xa0" + pretty(new_e, null));
+      rundata.push(["=\xa0\xa0\xa0" + pretty(new_e, null), new_e, null]);
     }
   }
-  return steps;
+  return rundata;
 }
 
 /**
@@ -141,7 +142,7 @@ function colorize(entry : HTMLLIElement, line : string) : HTMLLIElement {
  * result string. Eventually, this should be able to add many <li>s to show
  * the process of beta-reduction.
  */
-function showResult(res: ReadonlyArray<string>,
+function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Scanner, 
                     resultList: HTMLElement, helpText: HTMLCollectionOf<Element>) {
   // Hide the help text on first successful execution.
   for (let i = 0; i < helpText.length; ++i) {
@@ -153,8 +154,13 @@ function showResult(res: ReadonlyArray<string>,
   range.selectNodeContents(resultList);
   range.deleteContents();
 
-  for (let line of res) {
+
+  for (let [line, exp, info] of res) {
     let entry = document.createElement("li");
+    entry.addEventListener("click", (entry) => {
+      console.log("click on " + line);
+      renderAST(exp);
+    });
     resultList.appendChild(colorize(entry, line));
   }
 }
@@ -322,7 +328,7 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
       showError(programBox, errorBox, result);
     } else {
       clearError(errorBox);
-      showResult(result, resultList, helpText);
+      showResult(result, scanner, resultList, helpText);
     }
   }
 
@@ -426,7 +432,7 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
         throw new ParseError("Cannot define circularly dependent macro", 0);
       }
       clearError(errorBox);
-      showResult(result, resultList, helpText);
+      showResult(result, scanner, resultList, helpText);
     }
     catch (e)  {
       if (e instanceof ParseError) {

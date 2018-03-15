@@ -272,13 +272,13 @@ function getLabel(step : StepInfo | null): string {
  * Also returns the final expression for resugaring purposes.
  */
 export function run(expr : Expr | null, timeout : number, 
-  reduce : (e: Expr) => [Expr | null, StepInfo | null]) : [string[], Expr | null] {
+  reduce : (e: Expr) => [Expr | null, StepInfo | null]) : [string, Expr, StepInfo | null][] {
     
-  let steps: string[] = [];
+  let data : [string, Expr, StepInfo | null][] = [];
   let step = null;
 
   if (!expr) {
-    return [steps, null];
+    return [];
   }
 
   for (let i = 0; i <= timeout; ++i) {
@@ -287,15 +287,15 @@ export function run(expr : Expr | null, timeout : number,
     // Take a step, if possible.
     let [next_expr, next_step] = reduce(expr);
     if (!next_expr) {
-      steps.push(out + pretty(expr, null));
+      data.push([out + pretty(expr, null), expr, next_step]);
       break;
     }
     // color expr according to next step taken
-    steps.push(out + pretty(expr, next_step));
+    data.push([out + pretty(expr, next_step), expr, next_step]);
+    if (i === timeout)  return data; // Timed out
     expr = next_expr;
     step = next_step;
-    if (i === timeout) return [steps, null]; // Timed out
   }
 
-  return [steps, expr];
+  return data;
 }
