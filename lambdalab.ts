@@ -34,21 +34,26 @@ function insertText(text: string) {
   }
 }
 
-function renderAST(e : Expr) {
+function renderASTs(prev : Expr | null, cur : Expr, graphOut : HTMLElement) {
   let Viz = require('viz.js');
-  let dotAST = convertToDot(e);
-  let svg = Viz(dotAST);
-
-  let graphOut = document.getElementById("graph_output")!;
-  let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  graphContent.setAttribute("overflow", "auto");
-  graphContent.innerHTML = svg;
-
   // Clear the old contents.
   let range = document.createRange();
   range.selectNodeContents(graphOut);
   range.deleteContents();
 
+  if(prev) {
+    let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    let dotAST = convertToDot(prev);
+    let svg = Viz(dotAST);
+    graphContent.setAttribute("overflow", "auto");
+    graphContent.innerHTML = svg;
+    graphOut.appendChild(graphContent);
+  }
+  let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  let dotAST = convertToDot(cur);
+  let svg = Viz(dotAST);
+  graphContent.setAttribute("overflow", "auto");
+  graphContent.innerHTML = svg;
   graphOut.appendChild(graphContent);
 }
 
@@ -79,7 +84,7 @@ function runCode(scanner: Scanner, strategy : Strategy):  [string, Expr, (StepIn
 
   // TODO: generalize this to print each line of the results as a tree
   if (expr) {
-    renderAST(expr);
+    renderASTs(null, expr, document.getElementById("graph_output")!);
   }
   
   let rundata = run(expr, TIMEOUT, reduce);
@@ -154,12 +159,16 @@ function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Sca
   range.selectNodeContents(resultList);
   range.deleteContents();
 
-
-  for (let [line, exp, info] of res) {
+  for (let i = 0; i < res.length; i++) {
+    let [line, exp, info] = res[i];
     let entry = document.createElement("li");
     entry.addEventListener("click", (entry) => {
       console.log("click on " + line);
-      renderAST(exp);
+      let prev = null;
+      if (i > 0) {
+        prev = res[i-1][1];
+      }
+      renderASTs(prev, exp, document.getElementById("graph_output")!);
     });
     resultList.appendChild(colorize(entry, line));
   }
