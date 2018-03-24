@@ -34,27 +34,37 @@ function insertText(text: string) {
   }
 }
 
-function renderASTs(prev : Expr | null, cur : Expr, graphOut : HTMLElement) {
+function renderASTs(prev : Expr | null, stepInfo : StepInfo | null, cur : Expr, graphOut : HTMLElement) {
   let Viz = require('viz.js');
   // Clear the old contents.
   let range = document.createRange();
   range.selectNodeContents(graphOut);
   range.deleteContents();
 
-  if(prev) {
+  if (prev) {
+    let prevGraphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    let prevDotAST = convertToDot(prev, stepInfo);
+    console.log(prevDotAST);
+    let prevSvg = Viz(prevDotAST);
+    prevGraphContent.setAttribute("overflow", "auto");
+    prevGraphContent.innerHTML = prevSvg;
+    graphOut.appendChild(prevGraphContent);
     let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    let dotAST = convertToDot(prev);
+    let dotAST = convertToDot(cur, null);
+    console.log(dotAST);
+    let svg = Viz(dotAST);
+    graphContent.setAttribute("overflow", "auto");
+    graphContent.innerHTML = svg;
+    graphOut.appendChild(graphContent);
+  } else {
+    let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    let dotAST = convertToDot(cur, null);
+    console.log(dotAST);
     let svg = Viz(dotAST);
     graphContent.setAttribute("overflow", "auto");
     graphContent.innerHTML = svg;
     graphOut.appendChild(graphContent);
   }
-  let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  let dotAST = convertToDot(cur);
-  let svg = Viz(dotAST);
-  graphContent.setAttribute("overflow", "auto");
-  graphContent.innerHTML = svg;
-  graphOut.appendChild(graphContent);
 }
 
 /**
@@ -84,7 +94,7 @@ function runCode(scanner: Scanner, strategy : Strategy):  [string, Expr, (StepIn
 
   // TODO: generalize this to print each line of the results as a tree
   if (expr) {
-    renderASTs(null, expr, document.getElementById("graph_output")!);
+    renderASTs(null, null, expr, document.getElementById("graph_output")!);
   }
   
   let rundata = run(expr, TIMEOUT, reduce);
@@ -163,12 +173,13 @@ function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Sca
     let [line, exp, info] = res[i];
     let entry = document.createElement("li");
     entry.addEventListener("click", (entry) => {
-      console.log("click on " + line);
       let prev = null;
+      let step = null;
       if (i > 0) {
         prev = res[i-1][1];
+        step = res[i-1][2];
       }
-      renderASTs(prev, exp, document.getElementById("graph_output")!);
+      renderASTs(prev, step, exp, document.getElementById("graph_output")!);
     });
     resultList.appendChild(colorize(entry, line));
   }

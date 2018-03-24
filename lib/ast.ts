@@ -165,33 +165,55 @@ export function pretty(e: Expr, step : StepInfo | null): string {
  * Format a lambda calculus program as a dot file
  */
 
-export function convertToDot(e : Expr) : string {
+export function convertToDot(e : Expr, step : StepInfo | null) : string {
+  let rhsLabels : string[] = [];
+  let inRhs = false;
   function collectTree(e : Expr, parent : number | null, self : number) : [string[], string[]] {
     let connection : string[] = [];
+    let ret : [string[], string[]];
+    let label : string = "";
     if (parent) {
       connection = [parent + " -- " + self +";"];
     }
     switch (e.kind) {
       case "var":
-        return [[self + " [label=\"" + e.name + "\"];"], connection];
+        label = self + " [label=\"" + e.name + "\"];";
+        ret = [[label], connection];
+        break;
       case "abs":
-        let label = [self + " [label=\"λ" + e.vbl + "\"];"];
+        label = self + " [label=\"λ" + e.vbl + "\"];";
         let [sublabels, subtree] = collectTree(e.body, self, self * 2);
-        return [sublabels.concat(label), subtree.concat(connection)];
+        ret = [sublabels.concat([label]), subtree.concat(connection)];
+        break;
       case "macro":
-        return [[self + " [label=\"" + e.name + "\"];"], connection];
+        label = self + " [label=\"" + e.name + "\"];";
+        ret = [[label], connection];
+        break;
       case "app":
-        label = [self + " [label=\"APP\"];"];
+        label = self + " [label=\"APP\"];";
         let [sublabels1, subtree1] = collectTree(e.e1, self, self * 2);
+        if (step && step.beta && step.target === e.e2) inRhs = true;
         let [sublabels2, subtree2] = collectTree(e.e2, self, self * 2 + 1);
-        return [sublabels1.concat(sublabels2, label), subtree1.concat(subtree2, connection)];
+        inRhs = false;
+        ret = [sublabels1.concat(sublabels2, [label]), subtree1.concat(subtree2, connection)];
+        break;
+      default: //impossible
+        return [[],[]];
     }
+    if (inRhs) rhsLabels.push(label);
+    return ret;
   }
   let [nodes, connections] = collectTree(e, 0, 1);
   let labels = nodes.reduce((acc : string, elt : string) => acc + "\n" + elt);
   let treeString = "";
+
   if (connections.length > 0) {
     treeString = connections.reduce((acc : string, elt : string) => acc + "\n" + elt);
+  }
+  if (step) {
+    let substExpr = "subgraph cluster_1 {\n style=filled;\ncolor=red;\n " 
+      + rhsLabels.reduce((acc : string, elt : string) => acc + "\n" + elt) + "\n}";
+    return "graph AST {\n" + labels + "\n" + treeString + "\n" + substExpr + "}";
   }
   return "graph AST {\n" + labels + "\n" + treeString + "}";
 }
