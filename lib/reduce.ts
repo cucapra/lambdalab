@@ -57,39 +57,45 @@ function fresh(x: string, taken: ReadonlyArray<string>) {
 }
 
 /**
- * Perform capture-avoiding substitution: e[v/x].
+ * Perform capture-avoiding substitution: e[v/x]. Returns the new expressions, as well as pointers to all
+ * the substituted expressions
  */
-function subst(e: Expr, v: Expr, x: string): Expr {
+function subst(e: Expr, v: Expr, x: string): [Expr, Expr[]] {
   switch (e.kind) {
   case "var":
     if (e.name === x) {
-      return v.copy();
+      let subst = v.copy();
+      return [subst, [subst]];
     } else {
-      return e;
+      return [e, []];
     }
 
   case "app":
-    return new App(subst(e.e1, v, x), subst(e.e2, v, x));
+    let [res1, subst1] = subst(e.e1, v, x);
+    let [res2, subst2] = subst(e.e2, v, x);
+    return [new App(res1, res2), subst1.concat(subst2)];
 
   case "abs":
     if (e.vbl === x) {
       // Bound here.
-      return e;
+      return [e, []];
     } else {
       let freevars = fv(v);
       if (freevars.indexOf(e.vbl) === -1) {
         // Bound variable not free in v.
-        return new Abs(e.vbl, subst(e.body, v, x));
+        let [res, substs] = subst(e.body, v, x);
+        return [new Abs(e.vbl, res), substs];
       } else {
         // Rename the newly-bound variable.
         let y = fresh(e.vbl, freevars);
-        let body = subst(e.body, new Var(y), e.vbl);
-        return new Abs(y, subst(body, v, x));
+        let [body, _] = subst(e.body, new Var(y), e.vbl);
+        let [res, substs] = subst(body, v, x);
+        return [new Abs(y, res), substs];
       }
     }
   case "macro":
     //Don't substitute into macros because they are closed
-    return e;
+    return [e,[]];
   }
 }
 
@@ -116,20 +122,21 @@ export function reduce_cbv(e: Expr): [Expr | null, StepInfo | null] {
   }
 
   if (e.e1.kind === "macro") {
-    return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1)];
+    return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1, [])];
   }
 
   // Expand macros on the right hand side if they are applications (expressions that can 
   // step), as this indicates that they need to be expanded for correct CBV evaluation
   if (e.e2.kind === "macro") {
     if(e.e2.body.kind === "app") {
-      return [new App(e.e1, e.e2.body), new StepInfo(false, null, null, null, e.e2)];
+      return [new App(e.e1, e.e2.body), new StepInfo(false, null, null, null, e.e2, [])];
     }
   }
 
   // Let's do the time warp again.
   if (e.e1.kind === "abs") {
-    return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true, e.e1, e.e2, e.e1.vbl, null)];
+    let [expr, substs] = subst(e.e1.body.copy(), e.e2.copy(), e.e1.vbl);
+    return [expr, new StepInfo(true, e.e1, e.e2, e.e1.vbl, null, substs)];
   }
 
   return [null, null];
@@ -152,11 +159,12 @@ export function reduce_cbn(e: Expr): [Expr | null, StepInfo | null] {
   }
 
   if (e.e1.kind === "abs") {
-    return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true, e.e1, e.e2, e.e1.vbl, null)];
+    let [expr, substs] = subst(e.e1.body.copy(), e.e2.copy(), e.e1.vbl);
+    return [expr, new StepInfo(true, e.e1, e.e2, e.e1.vbl, null, substs)];
   }
 
   if (e.e1.kind === "macro") {
-    return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1)];
+    return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1, [])];
   }
 
   return [null, null];
@@ -183,16 +191,17 @@ export function reduce_normal(e: Expr): [Expr | null, StepInfo | null] {
     }
 
     if (e.e1.kind === "abs") {
-      return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true, e.e1, e.e2, e.e1.vbl, null)];
+      let [expr, substs] = subst(e.e1.body.copy(), e.e2.copy(), e.e1.vbl);
+      return [expr, new StepInfo(true, e.e1, e.e2, e.e1.vbl, null, substs)];
     }
 
     if (e.e1.kind === "macro") {
-      return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1)];
+      return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1, [])];
     }
 
     if (e.e2.kind === "macro") {
       if(e.e2.body.kind === "app") {
-        return [new App(e.e1, e.e2.body), new StepInfo(false, null, null, null, e.e2)];
+        return [new App(e.e1, e.e2.body), new StepInfo(false, null, null, null, e.e2, [])];
       }
     }
 
@@ -233,16 +242,17 @@ export function reduce_appl(e: Expr): [Expr | null, StepInfo | null] {
       let [body, step] = reduce_appl(e.e1.body);
       if (body)
         return [new App(new Abs(e.e1.vbl, body), e.e2), step];
-      return [subst(e.e1.body, e.e2, e.e1.vbl), new StepInfo(true, e.e1, e.e2, e.e1.vbl, null)];
+      let [expr, substs] = subst(e.e1.body.copy(), e.e2.copy(), e.e1.vbl);
+      return [expr, new StepInfo(true, e.e1, e.e2, e.e1.vbl, null, substs)];
     }
 
     if (e.e1.kind === "macro") {
-      return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1)];
+      return [new App(e.e1.body, e.e2), new StepInfo(false, null, null, null, e.e1, [])];
     }
 
     if (e.e2.kind === "macro") {
       if(e.e2.body.kind === "app") {
-        return [new App(e.e1, e.e2.body), new StepInfo(false, null, null, null, e.e2)];
+        return [new App(e.e1, e.e2.body), new StepInfo(false, null, null, null, e.e2, [])];
       }
     }
 

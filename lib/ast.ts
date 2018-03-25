@@ -86,14 +86,15 @@ export class StepInfo {
     public readonly abs: Abs | null, // the abstraction being substituted into
     public readonly target: Expr | null,  // the expresion being substituted
     public readonly vbl: string | null,  // the variable being replaced
-    public readonly macro: Macro | null // the macro being expanded
+    public readonly macro: Macro | null, // the macro being expanded
+    public readonly substituted: Expr[] // the appearances of the target in the resulting expression
   ) {
     this.shadowed = false;
     this.active = false;
   };
   
   public copy() : StepInfo {
-    let step = new StepInfo(this.beta, this.abs, this.target, this.vbl, this.macro);
+    let step = new StepInfo(this.beta, this.abs, this.target, this.vbl, this.macro, this.substituted);
     step.shadowed = this.shadowed;
     step.active = this.active;
     return step;
@@ -162,11 +163,12 @@ export function pretty(e: Expr, step : StepInfo | null): string {
 }
 
 /**
- * Format a lambda calculus program as a dot file
+ * Format a lambda calculus program as a dot file.
  */
 
 export function convertToDot(e : Expr, step : StepInfo | null) : string {
-  let rhsLabels : string[] = [];
+  let rhsLabels : string[][] = [];
+  let targetAppearance : number = -1;
   let inRhs = false;
   function collectTree(e : Expr, parent : number | null, self : number) : [string[], string[]] {
     let connection : string[] = [];
@@ -174,6 +176,11 @@ export function convertToDot(e : Expr, step : StepInfo | null) : string {
     let label : string = "";
     if (parent) {
       connection = [parent + " -- " + self +";"];
+    }
+    if (step && step.beta && step.substituted.indexOf(e) >= 0) {
+      inRhs = true; //if this is the target expression in the successor tree, it will be outlined in red
+      targetAppearance++;
+      rhsLabels.push([]);
     }
     switch (e.kind) {
       case "var":
@@ -192,7 +199,11 @@ export function convertToDot(e : Expr, step : StepInfo | null) : string {
       case "app":
         label = self + " [label=\"APP\"];";
         let [sublabels1, subtree1] = collectTree(e.e1, self, self * 2);
-        if (step && step.beta && step.target === e.e2) inRhs = true;
+        if (step && step.beta && step.target === e.e2) {
+          inRhs = true; //if this is the target expression in the predecessor tree, it will be outlined in red
+          targetAppearance++;
+          rhsLabels.push([]);
+        }
         let [sublabels2, subtree2] = collectTree(e.e2, self, self * 2 + 1);
         inRhs = false;
         ret = [sublabels1.concat(sublabels2, [label]), subtree1.concat(subtree2, connection)];
@@ -200,7 +211,8 @@ export function convertToDot(e : Expr, step : StepInfo | null) : string {
       default: //impossible
         return [[],[]];
     }
-    if (inRhs) rhsLabels.push(label);
+    if (inRhs) rhsLabels[targetAppearance].push(label);
+    if (step && step.substituted.indexOf(e) >= 0) inRhs = false;
     return ret;
   }
   let [nodes, connections] = collectTree(e, 0, 1);
@@ -211,9 +223,13 @@ export function convertToDot(e : Expr, step : StepInfo | null) : string {
     treeString = connections.reduce((acc : string, elt : string) => acc + "\n" + elt);
   }
   if (step) {
-    let substExpr = "subgraph cluster_1 {\n style=filled;\ncolor=red;\n " 
-      + rhsLabels.reduce((acc : string, elt : string) => acc + "\n" + elt) + "\n}";
-    return "graph AST {\n" + labels + "\n" + treeString + "\n" + substExpr + "}";
+    let substExpr = "";
+    for (let i = 0; i < rhsLabels.length; i++){
+      substExpr += "subgraph cluster_" + i + "{\n color=red;\n" + 
+      rhsLabels[i].reduce((acc : string, elt : string) => acc + "\n" + elt) + "\n}";
+    }
+    return "graph AST {\nordering=out;\n" + labels + 
+          "\n" + substExpr + "\n" + treeString + "}";
   }
-  return "graph AST {\n" + labels + "\n" + treeString + "}";
+  return "graph AST {\nordering=out;\n" + labels + "\n" + treeString + "}";
 }

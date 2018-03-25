@@ -41,29 +41,21 @@ function renderASTs(prev : Expr | null, stepInfo : StepInfo | null, cur : Expr, 
   range.selectNodeContents(graphOut);
   range.deleteContents();
 
+  let makeGraph = (e : Expr, step : StepInfo | null) => {
+    let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    let dotAST = convertToDot(e, step);
+    console.log(dotAST);
+    let svg = Viz(dotAST);
+    graphContent.setAttribute("overflow", "auto");
+    graphContent.innerHTML = svg;
+    graphOut.appendChild(graphContent);
+  };
+
   if (prev) {
-    let prevGraphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    let prevDotAST = convertToDot(prev, stepInfo);
-    console.log(prevDotAST);
-    let prevSvg = Viz(prevDotAST);
-    prevGraphContent.setAttribute("overflow", "auto");
-    prevGraphContent.innerHTML = prevSvg;
-    graphOut.appendChild(prevGraphContent);
-    let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    let dotAST = convertToDot(cur, null);
-    console.log(dotAST);
-    let svg = Viz(dotAST);
-    graphContent.setAttribute("overflow", "auto");
-    graphContent.innerHTML = svg;
-    graphOut.appendChild(graphContent);
+    makeGraph(prev, stepInfo);
+    makeGraph(cur, stepInfo);
   } else {
-    let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    let dotAST = convertToDot(cur, null);
-    console.log(dotAST);
-    let svg = Viz(dotAST);
-    graphContent.setAttribute("overflow", "auto");
-    graphContent.innerHTML = svg;
-    graphOut.appendChild(graphContent);
+    makeGraph(cur, null);
   }
 }
 
