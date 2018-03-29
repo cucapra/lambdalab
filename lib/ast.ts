@@ -212,7 +212,7 @@ export function convertToDot(e : Expr, step : StepInfo | null) : string {
     }
   }
   let [nodeTree, connections, target, vars] = collectTree(e, 0, 1, null, []);
-  let treeString = "edge [dir=none]\n";
+  let treeString = "edge [dir=none];\n";
 
   if (step) { //we don't want any possible changes to step to escape this function
     step.active = false;
@@ -223,10 +223,10 @@ export function convertToDot(e : Expr, step : StepInfo | null) : string {
     treeString = treeString + connections.reduce((acc : string, elt : string) => acc + "\n" + elt);
   }
   if (vars.length > 0 && target) {
-    treeString = treeString + "\nedge [dir=forward, color=blue]";
+    treeString = treeString + "\nedge [dir=forward, color=blue];";
     treeString = vars.reduce(
       (acc : string, elt : number) => acc + "\n" + //connect target cluster to vars
-      target + " -> " + elt + " [lhead=cluster"+target+", ltail=cluster"+elt+", style=dashed]", treeString);
+      target + " -> " + elt + " [ltail=cluster_"+target+", style=dashed];", treeString);
   }
-  return "digraph AST {\ncompound=true;\nordering=out;\n" + nodeTree + "\n" + treeString + "}";
+  return "digraph AST {\ncompound=true;\nordering=out;\n" + nodeTree + "\n" + treeString + "\n}";
 }
