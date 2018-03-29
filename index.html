@@ -58,9 +58,16 @@
 
             #graph_output {
                 float:right;
-                overflow:auto;
-                width: 1000px;
-                height: 1000px;
+                overflow:visible;
+                width: 500px;
+                height: 500px;
+            }
+
+            #graph_result_output {
+                float:right;
+                overflow:visible;
+                width: 500px;
+                height: 500px;
             }
 
             #show_options {
@@ -101,6 +108,7 @@
 
         <div id="program" contenteditable="true">(λx. x) λy. y</div>
 
+        <div id="graph_result_output"></div>
         <div id="graph_output"></div>
 
         <ul id="program_result"></ul>

@@ -34,27 +34,29 @@ function insertText(text: string) {
   }
 }
 
-function renderASTs(prev : Expr | null, stepInfo : StepInfo | null, cur : Expr, graphOut : HTMLElement) {
+function renderASTs(prev : Expr | null, stepInfo : StepInfo | null, cur : Expr) {
   let Viz = require('viz.js');
   // Clear the old contents.
-  let range = document.createRange();
-  range.selectNodeContents(graphOut);
-  range.deleteContents();
 
-  let makeGraph = (e : Expr, step : StepInfo | null) => {
+  let makeGraph = (e : Expr, step : StepInfo | null, graphOut : HTMLElement) => {
+    let range = document.createRange();
+    range.selectNodeContents(graphOut);
+    range.deleteContents();
     let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let dotAST = convertToDot(e, step);
     let svg = Viz(dotAST);
-    graphContent.setAttribute("overflow", "auto");
+    console.log(svg);
+    graphContent.setAttribute("overflow", "visible");
+    graphContent.setAttribute("float", "left");
     graphContent.innerHTML = svg;
     graphOut.appendChild(graphContent);
   };
 
   if (prev) {
-    makeGraph(prev, stepInfo);
-    makeGraph(cur, stepInfo);
+    makeGraph(prev, stepInfo, document.getElementById("graph_output")!);
+    makeGraph(cur, stepInfo, document.getElementById("graph_result_output")!);
   } else {
-    makeGraph(cur, null);
+    makeGraph(cur, null, document.getElementById("graph_output")!);
   }
 }
 
@@ -85,7 +87,7 @@ function runCode(scanner: Scanner, strategy : Strategy):  [string, Expr, (StepIn
 
   // TODO: generalize this to print each line of the results as a tree
   if (expr) {
-    renderASTs(null, null, expr, document.getElementById("graph_output")!);
+    renderASTs(null, null, expr);
   }
   
   let rundata = run(expr, TIMEOUT, reduce);
@@ -170,7 +172,7 @@ function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Sca
         prev = res[i-1][1];
         step = res[i-1][2];
       }
-      renderASTs(prev, step, exp, document.getElementById("graph_output")!);
+      renderASTs(prev, step, exp);
     });
     resultList.appendChild(colorize(entry, line));
   }
