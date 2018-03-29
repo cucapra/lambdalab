@@ -167,43 +167,66 @@ export function pretty(e: Expr, step : StepInfo | null): string {
  */
 
 export function convertToDot(e : Expr, step : StepInfo | null) : string {
-  function collectTree(e : Expr, parent : number | null, self : number) : [string, string[]] {
+  function collectTree(e : Expr, parent : number | null, self : number, target : number | null, vars : number[]) : [string, string[], number | null, number[]] {
     let connection : string[] = [];
     let outline = "style=\"\";\ncolor=red;\n";
-    let noout = "style=\"invis\"\n";
+    let noout = "style=\"invis\";\n";
+    // Outline the target subtree of the execution in red
     let style = (step && step.beta && step.substituted.indexOf(e) >= 0) || 
                 (step && step.beta && step.target === e) ? outline : noout;
     let label : string = "subgraph cluster_" + self + " {\n" + style;
-    if (parent) {
-      connection = [parent + " -- " + self +";"];
+    if (style == outline) {
+      target = self; //set the target to the current node
+    } 
+    if (parent) { // Add an edge from the parent to this child
+      connection = [parent + " -> " + self +";"];
     }
     switch (e.kind) {
       case "var":
+        if (step && step.beta && step.active && !step.shadowed && step.vbl === e.name) {
+          vars = vars.concat(self);
+        }
         label = label + self + " [label=\"" + e.name + "\"];\n}\n";
-        return [label, connection];
+        return [label, connection, target, vars];
       case "abs":
+        if (step && step.beta && step.abs === e) {
+          step.active = true;
+        } else if (step && step.beta && step.active && step.abs!.vbl === e.vbl) {
+          step.shadowed = true;
+        }
         label = label + self + " [label=\"λ" + e.vbl + "\"];\n";
-        let [sublabels, subtree] = collectTree(e.body, self, self * 2);
+        let [sublabels, subtree, t, v] = collectTree(e.body, self, self * 2, target, vars);
         label = label + sublabels + "}\n";
-        return [label, subtree.concat(connection)];
+        return [label, subtree.concat(connection), t, v];
       case "macro":
         label = label + self + " [label=\"" + e.name + "\"];\n}\n";
-        return [label, connection];
+        return [label, connection, target, vars];
       case "app":
         label = label + self + " [label=\"APP\"];\n";
-        let [sublabels1, subtree1] = collectTree(e.e1, self, self * 2);
-        let [sublabels2, subtree2] = collectTree(e.e2, self, self * 2 + 1);
+        let [sublabels1, subtree1, t1, v1] = collectTree(e.e1, self, self * 2, target, vars);
+        let [sublabels2, subtree2, t2, v2] = collectTree(e.e2, self, self * 2 + 1, target, vars);
         label = label + sublabels1 + sublabels2 + "}\n";
-        return [label, subtree1.concat(subtree2, connection)];
+        return [label, subtree1.concat(subtree2, connection), t1 || t2, v1.concat(v2)];
       default: //impossible
-        return ["",[]];
+        return ["",[], null, []];
     }
   }
-  let [nodeTree, connections] = collectTree(e, 0, 1);
-  let treeString = "";
+  let [nodeTree, connections, target, vars] = collectTree(e, 0, 1, null, []);
+  let treeString = "edge [dir=none]\n";
 
-  if (connections.length > 0) {
-    treeString = connections.reduce((acc : string, elt : string) => acc + "\n" + elt);
+  if (step) { //we don't want any possible changes to step to escape this function
+    step.active = false;
+    step.shadowed = false;
   }
-  return "graph AST {\nordering=out;\n" + nodeTree + "\n" + treeString + "}";
+
+  if (connections.length > 0) { //add computed edges to graph
+    treeString = treeString + connections.reduce((acc : string, elt : string) => acc + "\n" + elt);
+  }
+  if (vars.length > 0 && target) {
+    treeString = treeString + "\nedge [dir=forward, color=blue]";
+    treeString = vars.reduce(
+      (acc : string, elt : number) => acc + "\n" + //connect target cluster to vars
+      target + " -> " + elt + " [lhead=cluster"+target+", ltail=cluster"+elt+", style=dashed]", treeString);
+  }
+  return "digraph AST {\ncompound=true;\nordering=out;\n" + nodeTree + "\n" + treeString + "}";
 }

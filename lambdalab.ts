@@ -44,7 +44,6 @@ function renderASTs(prev : Expr | null, stepInfo : StepInfo | null, cur : Expr, 
   let makeGraph = (e : Expr, step : StepInfo | null) => {
     let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let dotAST = convertToDot(e, step);
-    console.log(dotAST);
     let svg = Viz(dotAST);
     graphContent.setAttribute("overflow", "auto");
     graphContent.innerHTML = svg;
