@@ -37,15 +37,17 @@ function insertText(text: string) {
 function renderASTs(prev : Expr | null, stepInfo : StepInfo | null, cur : Expr) {
   let Viz = require('viz.js');
   // Clear the old contents.
+  let range = document.createRange();
+  range.selectNodeContents(document.getElementById("graph_output")!);
+  range.deleteContents();
+  range = document.createRange();
+  range.selectNodeContents(document.getElementById("graph_result_output")!);
+  range.deleteContents();
 
   let makeGraph = (e : Expr, step : StepInfo | null, graphOut : HTMLElement) => {
-    let range = document.createRange();
-    range.selectNodeContents(graphOut);
-    range.deleteContents();
     let graphContent : SVGElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let dotAST = convertToDot(e, step);
     let svg = Viz(dotAST);
-    console.log(svg);
     graphContent.setAttribute("overflow", "visible");
     graphContent.setAttribute("float", "left");
     graphContent.innerHTML = svg;

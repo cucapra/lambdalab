@@ -41,6 +41,8 @@ function fv(e: Expr): ReadonlyArray<string> {
     return fv(e.body).filter(x => x != e.vbl);
   case "macro":
     return [];
+  case "flat":
+    throw "fv may not be performed on a flattened expression"
   }
 }
 
@@ -96,6 +98,8 @@ function subst(e: Expr, v: Expr, x: string): [Expr, Expr[]] {
   case "macro":
     //Don't substitute into macros because they are closed
     return [e,[]];
+  case "flat":
+    throw "subst may not be performed on a flattened expression"
   }
 }
 

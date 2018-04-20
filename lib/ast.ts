@@ -24,8 +24,8 @@ export class Var {
 export class App {
   kind: "app";
   constructor(
-    public readonly e1: Expr,
-    public readonly e2: Expr
+    public e1: Expr,
+    public e2: Expr
   ) {
     this.kind = "app";
   };
@@ -42,7 +42,7 @@ export class Abs {
   kind: "abs";
   constructor(
     public readonly vbl: string,
-    public readonly body: Expr
+    public body: Expr
   ) {
     this.kind = "abs";
   };
@@ -70,9 +70,25 @@ export class Macro {
 }
 
 /**
+ * A pseudo-syntax form used for printing that represents a collapsed term
+ */
+export class Flattened {
+  kind: "flat";
+  constructor(public readonly body : Expr
+  ) {
+    this.kind = "flat";
+  }
+
+  public copy() : Flattened {
+    return new Flattened(this.body);
+  }
+}
+
+
+/**
  * Any lambda-term.
  */
-export type Expr = Var | App | Abs | Macro;
+export type Expr = Var | App | Abs | Macro | Flattened;
 
 /** 
  * Structure containing data about most recent eval step for printing purposes
@@ -158,61 +174,167 @@ export function pretty(e: Expr, step : StepInfo | null): string {
       }
       res += lhs + " " + rhs;
       break;
+    case "flat":
+      res += pretty(e.body, step);
   }
   return res;
+}
+
+/*
+  Produces a description of a dot graph from an AST
+*/
+function collectTree(e : Expr, parent : number | null, self : number, target : number | null, 
+                     vars : number[], step : StepInfo | null) : [string, string[], number | null, number[]] {
+  let connection : string[] = [];
+  let outline = "style=\"\";\ncolor=red;\n";
+  let noout = "style=\"invis\";\n";
+  // Outline the target subtree of the execution in red
+  let style = (step && step.beta && step.substituted.indexOf(e) >= 0) || 
+              (step && step.beta && step.target === e) ? outline : noout;
+  let label : string = "subgraph cluster_" + self + " {\n" + style;
+  if (style == outline) {
+    target = self; //set the target to the current node
+  } 
+  if (parent) { // Add an edge from the parent to this child
+    connection = [parent + " -> " + self +";"];
+  }
+  switch (e.kind) {
+    case "flat":
+      label = label + self + " [label=\"" + pretty(e.body, null) + "\"];\n}\n";
+      return [label, connection, target, vars];
+    case "var":
+      if (step && step.beta && step.active && !step.shadowed && step.vbl === e.name) {
+        vars = vars.concat(self);
+      }
+      label = label + self + " [label=\"" + e.name + "\"];\n}\n";
+      return [label, connection, target, vars];
+    case "abs":
+      if (step && step.beta && step.abs === e) {
+        step.active = true;
+      } else if (step && step.beta && step.active && step.abs!.vbl === e.vbl) {
+        step.shadowed = true;
+      }
+      label = label + self + " [label=\"λ" + e.vbl + "\"];\n";
+      let [sublabels, subtree, t, v] = collectTree(e.body, self, self * 2, target, vars, step);
+      label = label + sublabels + "}\n";
+      return [label, subtree.concat(connection), t, v];
+    case "macro":
+      label = label + self + " [label=\"" + e.name + "\"];\n}\n";
+      return [label, connection, target, vars];
+    case "app":
+      label = label + self + " [label=\"APP\"];\n";
+      let [sublabels1, subtree1, t1, v1] = collectTree(e.e1, self, self * 2, target, vars, step);
+      let [sublabels2, subtree2, t2, v2] = collectTree(e.e2, self, self * 2 + 1, target, vars, step);
+      label = label + sublabels1 + sublabels2 + "}\n";
+      return [label, subtree1.concat(subtree2, connection), t1 || t2, v1.concat(v2)];
+    default: //impossible
+      return ["",[], null, []];
+  }
+}
+
+/**
+ * Determines if a given expression contains any subexpressions relevant to a step
+ */
+function activeInStep(e : Expr, step : StepInfo) : boolean {
+  if ((step && step.beta && step.substituted.indexOf(e) >= 0) || 
+      (step && step.beta && step.target === e)) 
+      return true;
+  switch (e.kind) {
+    case "macro":
+      return step && !step.beta && step.macro === e;
+    case "var":
+      return step && step.beta && step.active && !step.shadowed && step.vbl === e.name;
+    case "flat":
+      return false;
+    case "app":
+      return activeInStep(e.e1, step) || activeInStep(e.e2, step);
+    case "abs":
+      if (step && step.beta && step.abs === e) {
+        step.active = true;
+        return true;
+      } else if (step && step.beta && step.active && step.abs!.vbl === e.vbl) {
+        step.shadowed = true;
+        return false;
+      }
+      return activeInStep(e.body, step);
+  }
+}
+
+/**
+ * Expands a flattened AST
+ */
+function expand(e : Expr) {
+  switch (e.kind) {
+    case "var": 
+    case "macro":
+    case "flat":
+      return;
+    case "abs":
+      if (e.body.kind === "flat") {
+        e.body = e.body.body;
+      }
+      expand(e.body);
+      return;
+    case "app":
+      if (e.e1.kind === "flat") {
+        e.e1 = e.e1.body;
+      }
+      if (e.e2.kind === "flat") {
+        e.e2 = e.e2.body;
+      }
+      expand(e.e1);
+      expand(e.e2);
+      return;
+  }
+}
+
+/**
+ * Flattens an Expr tree in place into a flattened tree by collapsing the parts 
+ * of the tree not relevant to the current step
+ */
+function flatten(e : Expr, step : StepInfo) {
+  if ((step && step.beta && step.substituted.indexOf(e) >= 0) || 
+      (step && step.beta && step.target === e)) 
+      return; //don't flatten the target
+  switch (e.kind) {
+    case "var": 
+    case "macro":
+    case "flat":
+      return;
+    case "abs":
+      if (activeInStep(e.body, step)) {
+        flatten(e.body, step);
+      } else {
+        e.body = new Flattened(e.body);
+      }
+      return;
+    case "app":
+      let e1active = activeInStep(e.e1, step);
+      let e2active = activeInStep(e.e2, step);
+      if (e1active && e2active) {
+        flatten(e.e1, step);
+        flatten(e.e2, step);
+      } else if (e1active) {
+        flatten(e.e1, step);
+        e.e2 = new Flattened(e.e2);
+      } else if (e2active) {
+        flatten(e.e2, step);
+        e.e1 = new Flattened(e.e1);
+      } else {
+        e.e1 = new Flattened(e.e1);
+        e.e2 = new Flattened(e.e2);
+      }
+  }
 }
 
 /**
  * Format a lambda calculus program as a dot file.
  */
-
 export function convertToDot(e : Expr, step : StepInfo | null) : string {
-  function collectTree(e : Expr, parent : number | null, self : number, target : number | null, vars : number[]) : [string, string[], number | null, number[]] {
-    let connection : string[] = [];
-    let outline = "style=\"\";\ncolor=red;\n";
-    let noout = "style=\"invis\";\n";
-    // Outline the target subtree of the execution in red
-    let style = (step && step.beta && step.substituted.indexOf(e) >= 0) || 
-                (step && step.beta && step.target === e) ? outline : noout;
-    let label : string = "subgraph cluster_" + self + " {\n" + style;
-    if (style == outline) {
-      target = self; //set the target to the current node
-    } 
-    if (parent) { // Add an edge from the parent to this child
-      connection = [parent + " -> " + self +";"];
-    }
-    switch (e.kind) {
-      case "var":
-        if (step && step.beta && step.active && !step.shadowed && step.vbl === e.name) {
-          vars = vars.concat(self);
-        }
-        label = label + self + " [label=\"" + e.name + "\"];\n}\n";
-        return [label, connection, target, vars];
-      case "abs":
-        if (step && step.beta && step.abs === e) {
-          step.active = true;
-        } else if (step && step.beta && step.active && step.abs!.vbl === e.vbl) {
-          step.shadowed = true;
-        }
-        label = label + self + " [label=\"λ" + e.vbl + "\"];\n";
-        let [sublabels, subtree, t, v] = collectTree(e.body, self, self * 2, target, vars);
-        label = label + sublabels + "}\n";
-        return [label, subtree.concat(connection), t, v];
-      case "macro":
-        label = label + self + " [label=\"" + e.name + "\"];\n}\n";
-        return [label, connection, target, vars];
-      case "app":
-        label = label + self + " [label=\"APP\"];\n";
-        let [sublabels1, subtree1, t1, v1] = collectTree(e.e1, self, self * 2, target, vars);
-        let [sublabels2, subtree2, t2, v2] = collectTree(e.e2, self, self * 2 + 1, target, vars);
-        label = label + sublabels1 + sublabels2 + "}\n";
-        return [label, subtree1.concat(subtree2, connection), t1 || t2, v1.concat(v2)];
-      default: //impossible
-        return ["",[], null, []];
-    }
-  }
-  let [nodeTree, connections, target, vars] = collectTree(e, 0, 1, null, []);
+  if (step) flatten(e, step.copy());
+  let [nodeTree, connections, target, vars] = collectTree(e, 0, 1, null, [], step);
   let treeString = "edge [dir=none];\n";
+  if (step) expand(e);
 
   if (step) { //we don't want any possible changes to step to escape this function
     step.active = false;
