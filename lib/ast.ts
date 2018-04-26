@@ -1,3 +1,5 @@
+import { alpha_equivalent } from "./macro";
+
 /**
  * AST for the lambda-calculus.
  */
@@ -185,10 +187,9 @@ export function pretty(e: Expr, step : StepInfo | null): string {
  * of interactive guess and check
  */
 
-export function guessesMatch(e : Expr, s : string | null) : Boolean {
-  if (!s) return false;
-
-  return pretty(e, null).replace(/\s/g,'') === s.replace(/\s/g,'');
+export function guessesMatch(e1 : Expr, e2 : Expr | null) : Boolean {
+  if (!e2) return false;
+  return alpha_equivalent(e1, e2);
 }
 
 /*

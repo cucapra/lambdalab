@@ -146,7 +146,7 @@ function colorize(entry : HTMLLIElement, line : string) : HTMLLIElement {
 }
 
 function interactiveResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, 
-                                start : number, resultList: HTMLElement) {
+                          s : Scanner, start : number, resultList: HTMLElement) {
   // Clear the old contents.
   let range = document.createRange();
   range.selectNodeContents(resultList);
@@ -169,12 +169,13 @@ function interactiveResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>,
       let index = -1;
       for(let i = start; i < res.length; i++) {
         //Right now just check exact equivalence
-        if(guessesMatch(res[i][1], input.textContent)) {
+        s.set_string(input.textContent!);
+        if(guessesMatch(res[i][1], parse(s, Strategy.Normal))) {
           index = i;
         }
       }
       if (index < start) return;
-      interactiveResult(res, index, resultList);
+      interactiveResult(res, s, index, resultList);
     }
   });
   resultList.appendChild(input);
@@ -216,7 +217,7 @@ function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Sca
   let mode = document.getElementById("guess")! as HTMLInputElement;
 
   if (mode.checked) { //interactive mode
-    interactiveResult(res, 0, resultList);
+    interactiveResult(res, s, 0, resultList);
     return;
   }
 
