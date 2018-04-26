@@ -152,9 +152,8 @@ function interactiveResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>,
   range.selectNodeContents(resultList);
   range.deleteContents();
 
-  if (start > 0) {
-    appendResults(res.slice(0, start), resultList);
-  }
+  if (start > 0) appendResults(res.slice(0, start+1), resultList);
+  if (start + 1 === res.length) return;
 
   let input = document.createElement("li");
   input.contentEditable = "true";
@@ -217,7 +216,7 @@ function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Sca
   let mode = document.getElementById("guess")! as HTMLInputElement;
 
   if (mode.checked) { //interactive mode
-    interactiveResult(res, resultList);
+    interactiveResult(res, 0, resultList);
     return;
   }
 
