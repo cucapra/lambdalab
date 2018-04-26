@@ -146,7 +146,16 @@ function colorize(entry : HTMLLIElement, line : string) : HTMLLIElement {
 }
 
 function interactiveResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, 
-                            resultList: HTMLElement) {
+                                start : number, resultList: HTMLElement) {
+  // Clear the old contents.
+  let range = document.createRange();
+  range.selectNodeContents(resultList);
+  range.deleteContents();
+
+  if (start > 0) {
+    appendResults(res.slice(0, start), resultList);
+  }
+
   let input = document.createElement("li");
   input.contentEditable = "true";
   input.addEventListener("keypress", (event) => {
@@ -159,15 +168,14 @@ function interactiveResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>,
     } else if (event.key === "Enter") {
       event.preventDefault();
       let index = -1;
-      for(let i = 0; i < res.length; i++) {
+      for(let i = start; i < res.length; i++) {
         //Right now just check exact equivalence
         if(guessesMatch(res[i][1], input.textContent)) {
           index = i;
         }
       }
-      res = res.slice(0, index);
-      
-
+      if (index < start) return;
+      interactiveResult(res, index, resultList);
     }
   });
   resultList.appendChild(input);
@@ -206,11 +214,6 @@ function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Sca
     hide(helpText[i] as HTMLElement);
   }
 
-  // Clear the old contents.
-  let range = document.createRange();
-  range.selectNodeContents(resultList);
-  range.deleteContents();
-
   let mode = document.getElementById("guess")! as HTMLInputElement;
 
   if (mode.checked) { //interactive mode
@@ -218,6 +221,10 @@ function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Sca
     return;
   }
 
+  // Clear the old contents.
+  let range = document.createRange();
+  range.selectNodeContents(resultList);
+  range.deleteContents();
   appendResults(res, resultList);
 }
 
