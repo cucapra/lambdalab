@@ -180,6 +180,17 @@ export function pretty(e: Expr, step : StepInfo | null): string {
   return res;
 }
 
+/**
+ * Determines whether an input string matches a given expression for the purpose
+ * of interactive guess and check
+ */
+
+export function guessesMatch(e : Expr, s : string | null) : Boolean {
+  if (!s) return false;
+
+  return pretty(e, null).replace(/\s/g,'') === s.replace(/\s/g,'');
+}
+
 /*
   Produces a description of a dot graph from an AST
 */

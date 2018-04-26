@@ -2,7 +2,8 @@
  * The Web interface.
  */
 import { parse, ParseError, Scanner, add_macro } from './lib/parse';
-import { pretty, Expr, Var, App, Abs, Macro, StepInfo, convertToDot } from './lib/ast';
+import { pretty, Expr, Var, App, Abs, Macro, StepInfo, convertToDot,
+        guessesMatch } from './lib/ast';
 import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal,
          Strategy, strat_of_string } from './lib/reduce';
 import { resugar, MacroDefinition, getDependencies } from './lib/macro';
@@ -144,26 +145,36 @@ function colorize(entry : HTMLLIElement, line : string) : HTMLLIElement {
   }
 }
 
-/**
- * Show the result, given as a string, of executing some code in the list
- * element provided.
- *
- * Currently, this empties out the list and adds a single element with the
- * result string. Eventually, this should be able to add many <li>s to show
- * the process of beta-reduction.
- */
-function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Scanner, 
-                    resultList: HTMLElement, helpText: HTMLCollectionOf<Element>) {
-  // Hide the help text on first successful execution.
-  for (let i = 0; i < helpText.length; ++i) {
-    hide(helpText[i] as HTMLElement);
-  }
+function interactiveResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, 
+                            resultList: HTMLElement) {
+  let input = document.createElement("li");
+  input.contentEditable = "true";
+  input.addEventListener("keypress", (event) => {
+    // When the user types \, insert a lambda instead.
+    if (event.key === "\\") {
+      // Don't insert the \ character.
+      event.preventDefault();
+      // Instead, we'll insert a lambda.
+      insertText("λ");
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      let index = -1;
+      for(let i = 0; i < res.length; i++) {
+        //Right now just check exact equivalence
+        if(guessesMatch(res[i][1], input.textContent)) {
+          index = i;
+        }
+      }
+      res = res.slice(0, index);
+      
 
-  // Clear the old contents.
-  let range = document.createRange();
-  range.selectNodeContents(resultList);
-  range.deleteContents();
+    }
+  });
+  resultList.appendChild(input);
+}
 
+function appendResults(res: ReadonlyArray<[string, Expr, StepInfo | null]>, 
+                        resultList: HTMLElement) {
   for (let i = 0; i < res.length; i++) {
     let [line, exp, info] = res[i];
     let entry = document.createElement("li");
@@ -178,6 +189,36 @@ function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Sca
     });
     resultList.appendChild(colorize(entry, line));
   }
+}
+
+/**
+ * Show the result, given as a string, of executing some code in the list
+ * element provided.
+ *
+ * When interactive mode is off, this displays the result of beta reducing 
+ * the input. When on, it will allow users to input guesses and show when they
+ * are correct
+ */
+function showResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>, s : Scanner, 
+                    resultList: HTMLElement, helpText: HTMLCollectionOf<Element>) {
+  // Hide the help text on first successful execution.
+  for (let i = 0; i < helpText.length; ++i) {
+    hide(helpText[i] as HTMLElement);
+  }
+
+  // Clear the old contents.
+  let range = document.createRange();
+  range.selectNodeContents(resultList);
+  range.deleteContents();
+
+  let mode = document.getElementById("guess")! as HTMLInputElement;
+
+  if (mode.checked) { //interactive mode
+    interactiveResult(res, resultList);
+    return;
+  }
+
+  appendResults(res, resultList);
 }
 
 /**
