@@ -177,7 +177,7 @@ export function pretty(e: Expr, step : StepInfo | null): string {
       res += lhs + " " + rhs;
       break;
     case "flat":
-      res += pretty(e.body, step);
+      res += "...";
   }
   return res;
 }

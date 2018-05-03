@@ -51,7 +51,7 @@ function replace_macros (e : Expr, sigma : MacroLibrary) : Expr {
     case "app": return new App(replace_macros(e.e1, sigma), replace_macros(e.e2, sigma));
     case "abs": return new Abs(e.vbl, replace_macros(e.body, sigma));
     case "macro": return replace_macros(e.body, sigma);
-    case "flat": throw "cannot replace macros in a flattened expression"
+    case "flat": return e;
   }
 }
 
@@ -180,7 +180,7 @@ export function resugar(e : Expr, sigma : MacroLibrary, s : Strategy) : [Expr, b
       case "macro":
         return [e, false];
       case "flat":
-        throw "cannot resugar a flattened expression";
+        return [e, false];
     }
 }
 

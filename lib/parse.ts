@@ -1,7 +1,7 @@
 /**
  * A very simple recursive-descent parser for the plain lambda-calculus.
  */
-import { pretty, Expr, Abs, App, Var, Macro, StepInfo } from './ast';
+import { pretty, Expr, Abs, App, Var, Macro, StepInfo, Flattened } from './ast';
 import { reduce_cbv, reduce_cbn, reduce_appl, reduce_normal, Strategy, run } from './reduce';
 import { MacroDefinition, init_macros } from './macro';
 import { TIMEOUT } from '../lambdalab';
@@ -152,6 +152,12 @@ function parse_expr(s: Scanner, eval_strat : Strategy): Expr {
  * parenthesized expression.
  */
 function parse_term(s: Scanner, eval_strat : Strategy): Expr | null {
+  //parse ellipses to indicate an "unimportant" term
+  let dots = parse_dots(s);
+  if (dots) {
+    return dots;
+  }
+
   // Try a variable occurrence.
   let vbl = parse_var(s);
   if (vbl) {
@@ -194,6 +200,19 @@ function parse_var(s: Scanner): Expr | null {
   } else {
     return null;
   }
+}
+
+/**
+ * Parse ellipses
+ */
+
+function parse_dots(s: Scanner): Expr | null {
+  let dots = s.scan(/\.\.\./)
+  if (!dots) {
+    return null;
+  }
+  skip_whitespace(s);
+  return new Flattened(new Var(dots));
 }
 
 /**
@@ -380,7 +399,10 @@ export function add_macro(s: Scanner) : [string, [string, Expr, StepInfo | null]
  */
 export function parse(scanner : Scanner, strat : Strategy): Expr | null {
   let expr = parse_expr(scanner, strat);
+  console.log("Offset: " + scanner.offset);
+  console.log("Length: " + scanner.str.length);
   if (scanner.offset < scanner.str.length) {
+    console.log("error");
     throw scanner.error("unexpected token");
   }
   return expr;
