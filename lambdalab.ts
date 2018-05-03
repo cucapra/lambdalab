@@ -3,7 +3,7 @@
  */
 import { parse, ParseError, Scanner, add_macro } from './lib/parse';
 import { pretty, Expr, Var, App, Abs, Macro, StepInfo, convertToDot,
-        guessesMatch } from './lib/ast';
+        guessesMatch, flattenToMatch } from './lib/ast';
 import { run, reduce_cbv, reduce_cbn, reduce_appl, reduce_normal,
          Strategy, strat_of_string } from './lib/reduce';
 import { resugar, MacroDefinition, getDependencies } from './lib/macro';
@@ -167,10 +167,14 @@ function interactiveResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>,
     } else if (event.key === "Enter") {
       event.preventDefault();
       let index = -1;
-      for(let i = start; i < res.length; i++) {
+      for(let i = Math.max(start, 0); i < res.length; i++) {
         s.set_string(input.textContent!);
-        if(guessesMatch(res[i][1], parse(s, Strategy.Normal))) {
+        let guess = parse(s, Strategy.Normal);
+        if(guessesMatch(res[i][1], guess)) {
           index = i;
+          // flatten the result to match any ellipses used in the guess
+          res[i][1] = flattenToMatch(res[i][1], guess!);
+          res[i][0] = res[i][0].substring(0,4) + pretty(res[i][1], res[i][2]);
         }
       }
       if (index < start) return;

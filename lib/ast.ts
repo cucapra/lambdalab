@@ -189,7 +189,28 @@ export function pretty(e: Expr, step : StepInfo | null): string {
 
 export function guessesMatch(e1 : Expr, e2 : Expr | null) : Boolean {
   if (!e2) return false;
-  return alpha_equivalent(e1, e2);
+  return alpha_equivalent(e2, e1);
+}
+
+/**
+ * Flattens a source expr to match the flattening level of the target
+ * 
+ * Precondition is that the two trees have the same structure up
+ * to flattening
+ */
+
+export function flattenToMatch(source : Expr, target : Expr) : Expr {
+  if (source.kind === "var" && target.kind === "var") return source;
+  else if (source.kind === "macro" && target.kind === "macro") return source;
+  else if (source.kind === "abs" && target.kind === "abs") {
+    return new Abs(source.vbl, flattenToMatch(source.body, target.body));
+  } else if (source.kind === "app" && target.kind === "app") {
+      return new App(flattenToMatch(source.e1,target.e1), 
+                     flattenToMatch(source.e2,target.e2))
+  } else if (source.kind === "flat" && target.kind === "flat") return source;
+  else if (target.kind != "flat") {
+    throw "mismatched ASTs in flattening"
+  } else return new Flattened(source);
 }
 
 /*

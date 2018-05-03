@@ -399,10 +399,7 @@ export function add_macro(s: Scanner) : [string, [string, Expr, StepInfo | null]
  */
 export function parse(scanner : Scanner, strat : Strategy): Expr | null {
   let expr = parse_expr(scanner, strat);
-  console.log("Offset: " + scanner.offset);
-  console.log("Length: " + scanner.str.length);
   if (scanner.offset < scanner.str.length) {
-    console.log("error");
     throw scanner.error("unexpected token");
   }
   return expr;
