@@ -34,6 +34,8 @@ export function alpha_equivalent (ex1 : Expr, ex2: Expr) : boolean {
     } else if (e1.kind === "macro" && e2.kind === "macro") {
       // Macros are closed, so we reset the contexts
       return alpha_equiv_in_context(e1.body, [], e2.body, []);
+    } else if (e1.kind === "flat" || e2.kind === "flat") {
+      return true; //flattened expressions are like wild-cards; they match everything
     }
     // Clearly terms with different structures are not alpha-equivalent
     return false;

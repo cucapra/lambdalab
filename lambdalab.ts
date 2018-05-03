@@ -168,7 +168,6 @@ function interactiveResult(res: ReadonlyArray<[string, Expr, StepInfo | null]>,
       event.preventDefault();
       let index = -1;
       for(let i = start; i < res.length; i++) {
-        //Right now just check exact equivalence
         s.set_string(input.textContent!);
         if(guessesMatch(res[i][1], parse(s, Strategy.Normal))) {
           index = i;
