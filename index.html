@@ -1,100 +1,11 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta charset="UTF-8" />
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title>λab</title>
-        <style>
-            body {
-                font-family: Verdana, Tahoma, Geneva, sans-serif;
-                line-height: 140%;
-                padding: 1rem 3rem;
-            }
-
-            #program, #macro {
-                font-size: 250%;
-                outline: none;
-            }
-
-            h1, .help {
-                color: #999;
-            }
-
-            form {
-                margin-bottom: 3cm;
-            }
-
-            #program_result, #macro_result {
-                list-style: none;
-                padding-left: 0;
-                font-size: 150%;
-            }
-
-            #program_error, #macro_error {
-                display: none;
-                color: red;
-                position: absolute;
-                margin-top: -1rem;
-            }
-
-            #options {
-                visibility: hidden;
-
-                background: #ddd;
-                padding: 1rem;
-
-                width: 15rem;
-                position: absolute;
-                right: 0;
-                top: 0;
-                bottom: 0;
-            }
-            #options h3 {
-                margin-top: 1.5rem;
-                margin-bottom: 0.5rem;
-            }
-            #options p {
-                margin: 0.5rem 0;
-            }
-
-            .graph {
-                float:right;
-                overflow:visible;
-                width: 500px;
-                height: 500px;
-            }
-
-            #show_options {
-                position: absolute;
-                right: 0;
-                top: 0;
-                border: none;
-                background: transparent;
-                padding: 0.5rem 1rem 1rem 1rem;
-                font-size: 200%;
-            }
-            #share_link {
-                width: 100%;
-                margin-top: 0;
-            }
-
-            .active_abs {
-                color : #0000CD;
-            }
-
-            .active_subst {
-                color : #B31B1B;
-            }
-
-
-            #macrolist {
-                overflow: auto;
-                list-style: none;
-                padding-left: 0;
-                font-size: 150%;
-                height: 500px;
-            }
-
-        </style>
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
         <h1>λab</h1>
