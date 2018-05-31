@@ -6,7 +6,7 @@ lambdalab.bundle.js: lambdalab.ts $(wildcard lib/*.ts)
 	yarn run build-web
 
 .PHONY: dist
-dist: lambdalab.bundle.js index.html
+dist: lambdalab.bundle.js style.css index.html
 	mkdir -p $@
 	cp $^ $@
 
