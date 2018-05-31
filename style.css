@@ -50,10 +50,12 @@ form {
     margin: 0.5rem 0;
 }
 
+/* The visual AST displays. */
 .graph {
-    float:right;
-    overflow:visible;
-    width: 500px;
+    float: right;
+    overflow: visible;
+    width: 20%;
+    max-width: 500px;
     height: 500px;
 }
 
