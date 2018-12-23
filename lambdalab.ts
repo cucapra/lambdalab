@@ -464,6 +464,7 @@ function updateMacroList (sortedMacros : MacroDefinition[], macroList : HTMLElem
   });
 }
 
+
 /**
  * Set up the macro event handlers. This is called when the DOM is first loaded.
  */
@@ -548,6 +549,51 @@ function toggleVisibility(el: HTMLElement) {
   }
 }
 
+/**
+ * Called when the download button is clicked. 
+ * Creates a file with specified filename and content and downloads it.
+ */
+function download(filename:string, content:string) {
+  let element = document.createElement('a');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+  element.setAttribute('download', filename);
+  element.style.display = 'none';
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
+}
+
+/**
+ * Parses the list of uploaded macro definitions in order and add to list of macros.
+ * Called when the user uploads a text file containing macro definitions.
+ */
+function processUploadedMacros(scanner: Scanner, uploadedMacroList: string[], macroList:HTMLElement) {
+  uploadedMacroList.forEach((uploadedMacroDefn) => {
+    scanner.set_string(uploadedMacroDefn);
+    try {
+      let old = scanner.copyMacros();
+      let [name, result] = add_macro(scanner);
+      try {
+        let sorted = sortMacros(scanner);
+        scanner.recompileMacros(sorted);
+        updateMacroList(sorted, macroList);
+      }
+      catch (e) {
+        scanner.macro_lookup = old;
+        throw new ParseError("Cannot define circularly dependent macro", 0);
+      }
+    } catch (e) {
+      if (e instanceof ParseError) {
+        //include which definition caused the error
+        alert(`Error: ${e.msg} for ${uploadedMacroDefn}`);
+      }
+      else {
+        throw (e);
+      }
+    }
+  });
+}
+
 // Event handler for document setup.
 document.addEventListener("DOMContentLoaded", () => {
   // Select the sharing link (and copy it to the clipboard, when supported) on
@@ -584,4 +630,30 @@ document.addEventListener("DOMContentLoaded", () => {
   if (handleHash(window.location.hash, programBox, strategies)) {
     execute();
   }
+
+  // Download macros as a .txt file
+  let downloadButton = document.getElementById("download_macros")!;
+  downloadButton.addEventListener("click", function(){
+    let sortedMacros = sortMacros(scanner);
+    let content = sortedMacros.map(macro => {
+      return macro.name + " ≜ " + pretty(macro.unreduced, null);
+    }).join("\n");
+    let filename = "macros.txt";
+    download(filename, content);
+  }, false);
+
+  // Upload text file of macro definitions (each one must be on a separate line)
+  let uploadButton = <HTMLInputElement>(document.getElementById("upload_macros"))!;
+  uploadButton.addEventListener("change", function(){
+    let files = uploadButton.files;
+    if (!files) return;
+    let file = files[0];
+    let reader = new FileReader();
+    reader.onload = function(e) {
+      if (!reader.result) return;
+      let uploadedMacroList = reader.result.toString().split(/\r?\n/);
+      processUploadedMacros(scanner, uploadedMacroList, macroList);
+    }
+    reader.readAsText(file);
+  }, false);
 });
