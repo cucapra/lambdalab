@@ -17,7 +17,7 @@ export const TIMEOUT = 100;
  * Insert text into the DOM at the current selection caret.
  */
 function insertText(text: string) {
-  let sel = window.getSelection();
+  let sel = window.getSelection()!;
   if (sel.getRangeAt && sel.rangeCount) {
     // Remove any current contents.
     let range = sel.getRangeAt(0);
