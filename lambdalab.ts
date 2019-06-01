@@ -319,7 +319,8 @@ function updateLink(code: string, strategy: number, macros: string,
  * Return a flag indicating whether code was loaded from the state.
  */
 function handleHash(hash: string, programBox: HTMLElement,
-                    strategies: NodeListOf<HTMLInputElement>): boolean {
+                    strategies: NodeListOf<HTMLInputElement>,
+                    scanner: Scanner, macroList: HTMLElement): boolean {
   let json = decodeURIComponent(hash.substr(1));
   if (!json) {
     return false;
@@ -347,6 +348,15 @@ function handleHash(hash: string, programBox: HTMLElement,
         strategies[i].checked = true;
         break;
       }
+    }
+  }
+
+  // Load the macros. I really wish this Scanner thing weren't so stateful…
+  // it really shouldn't be keeping track of all the defined macros!
+  if (state.macros) {
+    for (let macro of state.macros.split("\n")){
+      console.log("adding", macro);
+      macroAdd(scanner, macroList, macro);
     }
   }
 
@@ -474,6 +484,25 @@ function updateMacroList (sortedMacros : MacroDefinition[], macroList : HTMLElem
 }
 
 /**
+ * Accept a new macro definition and incorporate it into the current macro
+ * list.
+ */
+function macroAdd(scanner: Scanner, macroList: HTMLElement, code: string) {
+  scanner.set_string(code);
+  let old = scanner.copyMacros();
+  let [name, result] = add_macro(scanner);
+  try {
+    let sorted = sortMacros(scanner);
+    scanner.recompileMacros(sorted);
+    updateMacroList(sorted, macroList);
+  } catch (e) {
+    scanner.macro_lookup = old;
+    throw new ParseError("Cannot define circularly dependent macro", 0);
+  }
+  return result;
+}
+
+/**
  * Set up the macro event handlers. This is called when the DOM is first loaded.
  */
 function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
@@ -485,7 +514,6 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
 
   // Run the code currently entered into the box.
   function execute() {
-    // Parse and execute.
     let code = macroBox.textContent!;
     if (!code.trim()) {
       // No code: do nothing.
@@ -493,27 +521,14 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
       return;
     }
 
-    scanner.set_string(code);
     try {
-      let old = scanner.copyMacros();
-      let [name, result] = add_macro(scanner);
-      try {
-        let sorted = sortMacros(scanner);
-        scanner.recompileMacros(sorted);
-        updateMacroList(sorted, macroList);
-      }
-      catch (e) {
-        scanner.macro_lookup = old;
-        throw new ParseError("Cannot define circularly dependent macro", 0);
-      }
+      let result = macroAdd(scanner, macroList, code);
       clearError(errorBox);
       showResult(result, scanner, resultList, helpText);
-    }
-    catch (e)  {
+    } catch (e)  {
       if (e instanceof ParseError) {
         showError(macroBox, errorBox, e);
-      }
-      else {
+      } else {
         throw(e);
       }
     }
@@ -590,7 +605,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Load the state from a pasted sharing link, if any.
-  if (handleHash(window.location.hash, programBox, strategies)) {
+  if (handleHash(window.location.hash, programBox, strategies, scanner, macroList)) {
     execute();
   }
 });
