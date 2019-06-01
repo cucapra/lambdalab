@@ -303,9 +303,9 @@ function clearError(errorBox: HTMLElement) {
 /**
  * Update the sharing link with the current code.
  */
-function updateLink(code: string, strategy: number,
+function updateLink(code: string, strategy: number, macros: string,
                     shareLink: HTMLInputElement) {
-  let state = { code, strategy };
+  let state = { code, strategy, macros };
   let state_str = encodeURIComponent(JSON.stringify(state));
   let base_url = window.location.href.replace(window.location.hash, "");
   let share_url = base_url + '#' + state_str;
@@ -385,7 +385,8 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
     if(!strategy) return;
 
     // Update the sharing link.
-    updateLink(code, strategy, shareLink);
+    let macros = macroText(scanner);
+    updateLink(code, strategy, macros, shareLink);
 
     // Parse and execute.
     scanner.set_string(code);
@@ -432,7 +433,6 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
   return execute;
 }
 
-
 /**
  * Sort the list of macros by dependency. Returns the sorted list 
  */
@@ -446,6 +446,15 @@ function sortMacros(scanner : Scanner) {
   return sortedMacros;
 }
 
+/**
+ * Get the current list of macros as a string.
+ */
+function macroText(scanner: Scanner): string {
+  let sortedMacros = sortMacros(scanner);
+  return sortedMacros.map(macro => {
+    return macro.name + " ≜ " + pretty(macro.unreduced, null);
+  }).join("\n");
+}
 
 /**
  * Update the list of defined macros to display all the macros in the scanner. 
