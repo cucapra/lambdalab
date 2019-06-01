@@ -364,6 +364,19 @@ function handleHash(hash: string, programBox: HTMLElement,
 }
 
 /**
+ * Determine the currently selected evaluaiton strategy.
+ */
+function getStrategy(strategies: NodeListOf<HTMLInputElement>) {
+  let strategy = null;
+  for (let i = 0; i < strategies.length; i++) {
+    if (strategies[i].checked) {
+      strategy = strat_of_string(strategies[i].value);
+    }
+  }
+  return strategy;
+}
+
+/**
  * Set up the program event handlers. This is called when the DOM is first
  * loaded.
  *
@@ -386,17 +399,11 @@ function programSetUp(programBox: HTMLElement, resultList: HTMLElement,
     }
 
     // Determine the evaluation strategy.
-    let strategy = null;
-    for (let i = 0; i < strategies.length; i++) {
-      if (strategies[i].checked) {
-        strategy = strat_of_string(strategies[i].value);
-      }
-    }
+    let strategy = getStrategy(strategies);
     if(!strategy) return;
 
     // Update the sharing link.
-    let macros = macroText(scanner);
-    updateLink(code, strategy, macros, shareLink);
+    updateLink(code, strategy, macroText(scanner), shareLink);
 
     // Parse and execute.
     scanner.set_string(code);
@@ -506,7 +513,9 @@ function macroAdd(scanner: Scanner, macroList: HTMLElement, code: string) {
  * Set up the macro event handlers. This is called when the DOM is first loaded.
  */
 function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
-  helpText: HTMLCollectionOf<Element>, errorBox: HTMLElement, macroList:HTMLElement) {
+  helpText: HTMLCollectionOf<Element>, errorBox: HTMLElement, macroList:HTMLElement,
+  strategies: NodeListOf<HTMLInputElement>, shareLink: HTMLInputElement,
+  programBox: HTMLElement) {
 
   let scanner = new Scanner();
   let sorted = sortMacros(scanner);
@@ -521,6 +530,7 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
       return;
     }
 
+    // Parse and insert the new macro definition.
     try {
       let result = macroAdd(scanner, macroList, code);
       clearError(errorBox);
@@ -532,6 +542,8 @@ function macroSetUp(macroBox: HTMLElement, resultList: HTMLElement,
         throw(e);
       }
     }
+
+    updateLink(programBox.textContent!, getStrategy(strategies) || 0, macroText(scanner), shareLink);
   }
 
   // Focus in the code box.
@@ -587,13 +599,15 @@ document.addEventListener("DOMContentLoaded", () => {
   let macroText = document.getElementsByClassName("macro_help");
   let macroErrorBox = document.getElementById("macro_error")!;
   let macroList = document.getElementById("macrolist")!;
-  let scanner = macroSetUp(macroBox, macroResult, macroText, macroErrorBox, macroList);
 
   let programBox = document.getElementById("program")!;
   let strategies = document.getElementsByName("evalStrat")! as NodeListOf<HTMLInputElement>;
   let programResultList = document.getElementById("program_result")!;
   let programHelpText = document.getElementsByClassName("program_help");
   let programErrorBox = document.getElementById("program_error")!;
+
+  // Set up macro entry and program entry.
+  let scanner = macroSetUp(macroBox, macroResult, macroText, macroErrorBox, macroList, strategies, shareLink, programBox);
   let execute = programSetUp(programBox, programResultList, strategies, scanner,
     programHelpText, programErrorBox, shareLink);
 
